@@ -1,0 +1,19 @@
+[
+  {
+    "Author": "Lénile",
+    "Name": "DressSaver",
+    "InternalName": "DressSaver",
+    "AssemblyVersion": "0.1.0.0",
+    "Description": "Extrait la tenue portée (vêtements, accessoires, coiffure, maquillage) en mod Penumbra (.pmp) avec son design Glamourer, et aide à résoudre les conflits entre tenues.",
+    "ApplicableVersion": "any",
+    "RepoUrl": "https://github.com/TON_PSEUDO/DressSaver",
+    "Tags": ["penumbra", "glamourer", "mods", "tenues"],
+    "DalamudApiLevel": 13,
+    "LoadPriority": 0,
+    "IsHide": false,
+    "IsTestingExclusive": false,
+    "DownloadLinkInstall": "https://github.com/TON_PSEUDO/DressSaver/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/TON_PSEUDO/DressSaver/releases/latest/download/latest.zip",
+    "DownloadLinkTesting": "https://github.com/TON_PSEUDO/DressSaver/releases/latest/download/latest.zip"
+  }
+]

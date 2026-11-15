@@ -1,0 +1,20 @@
+<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+  <!--
+    Si GitHub Actions échoue avec une erreur de version de SDK, remplacez 13.0.0
+    par la version actuelle de Dalamud.NET.Sdk (voir nuget.org/packages/Dalamud.NET.Sdk).
+  -->
+  <PropertyGroup>
+    <Version>0.1.0.0</Version>
+    <Description>Range les tenues de ton perso en mods Penumbra propres, avec leur design Glamourer.</Description>
+    <PackageProjectUrl>https://github.com/</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Penumbra.Api" Version="5.*" />
+    <PackageReference Include="Glamourer.Api" Version="2.*" />
+  </ItemGroup>
+</Project>

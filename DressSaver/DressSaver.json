@@ -1,0 +1,9 @@
+{
+  "Author": "Lénile",
+  "Name": "DressSaver",
+  "Punchline": "Range tes tenues en mods Penumbra propres.",
+  "Description": "Extrait la tenue que porte ton personnage (vêtements, accessoires, coiffure, maquillage) en un mod Penumbra (.pmp) bien organisé, avec son design Glamourer. Détecte les conflits avec tes autres tenues et propose des objets libres pour les résoudre.\n\nCommande : /dresssaver",
+  "ApplicableVersion": "any",
+  "Tags": ["penumbra", "glamourer", "mods", "tenues"],
+  "RepoUrl": "https://github.com/"
+}
