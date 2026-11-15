@@ -331,11 +331,21 @@ public static class Loc
         },
         ["design_none"] = new[]
         {
-            "introuvable dans Glamourer",
-            "not found in Glamourer",
-            "no encontrado en Glamourer",
-            "nicht in Glamourer gefunden",
+            "introuvable : choisis-le dans la colonne Design",
+            "not found: pick it in the Design column",
+            "no encontrado: elígelo en la columna Diseño",
+            "nicht gefunden: wähle es in der Spalte Design",
         },
+        ["col_design"] = new[] { "Design Glamourer", "Glamourer design", "Diseño de Glamourer", "Glamourer-Design" },
+        ["design_pick"] = new[] { "Choisir le design…", "Pick the design…", "Elegir el diseño…", "Design wählen…" },
+        ["design_pick_tip"] = new[]
+        {
+            "Le design Glamourer appliqué par « Porter ». Retrouvé automatiquement quand le nom est proche, sinon choisis-le ici.",
+            "The Glamourer design applied by \"Wear\". Found automatically when the name is close, otherwise pick it here.",
+            "El diseño de Glamourer que aplica «Poner». Se encuentra solo si el nombre es parecido; si no, elígelo aquí.",
+            "Das Glamourer-Design, das „Tragen“ anwendet. Wird bei ähnlichem Namen automatisch gefunden, sonst hier wählen.",
+        },
+        ["design_unlink"] = new[] { "(aucun)", "(none)", "(ninguno)", "(keins)" },
         ["update_banner"] = new[]
         {
             "Mise à jour de « {0} » : la tenue que tu portes va remplacer l'ancienne version.",

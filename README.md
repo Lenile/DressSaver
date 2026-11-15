@@ -19,7 +19,7 @@ Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type
 - **Credits**: the description of every created mod lists each piece with its original mod and modder (`Piece - Mod - Author`).
 - **Disable original mods** (optional): once the new mod is installed and enabled, the mods the outfit came from are disabled. **They are never deleted**, so you can turn them back on at any time.
 - **My outfits** tab: lists every outfit made with DressSaver.
-  - **Wear** enables the outfit's mod and applies its Glamourer design in one click.
+  - **Wear** enables the outfit's mod and applies its Glamourer design in one click. The design is found automatically even if its name is slightly different (accents, dashes, shorter name); otherwise you can pick it from the list.
   - **Update** replaces a saved outfit with what you're wearing now (same name, same place in Penumbra and Glamourer).
 - **Name check**: warns you if an outfit with the same name already exists, and offers to replace it. A mod that wasn't made by DressSaver is never replaced.
 - **Pre-Dawntrail warning**: pieces (and hairstyles) still using the old model format are flagged, because they may show up invisible or broken in game.

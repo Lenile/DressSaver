@@ -50,6 +50,8 @@ public sealed class MainWindow : Window
     private ModScanner? wardrobe;
     private string wardrobeFilter = string.Empty;
     private string wardrobeStatus = string.Empty;
+    private Dictionary<Guid, string> designList = new();
+    private string designFilter = string.Empty;
     private bool wardrobeStatusIsError;
 
     // Activation du nouveau mod (puis désactivation des mods d'origine et application du design),
@@ -58,6 +60,7 @@ public sealed class MainWindow : Window
     private List<SourceMod> pendingSources = new();
     private bool pendingDisableSources;
     private Guid pendingDesignId = Guid.Empty;
+    private Guid pendingLinkDesignId = Guid.Empty;
     private DateTime pendingDeadline;
     private DateTime nextPoll;
 
@@ -197,7 +200,7 @@ public sealed class MainWindow : Window
         {
             Icon(FontAwesomeIcon.SyncAlt, Blue);
             ImGui.SameLine();
-            Wrapped(Blue, Loc.T("update_banner", updateTarget));
+            Wrapped(Blue, Loc.T("update_banner", Names.Display(updateTarget)));
             if (ImGui.SmallButton(Loc.T("update_cancel") + "##cancel_update"))
             {
                 updateTarget = null;
@@ -498,13 +501,13 @@ public sealed class MainWindow : Window
         {
             Icon(isOutfit ? FontAwesomeIcon.ExclamationTriangle : FontAwesomeIcon.TimesCircle, isOutfit ? Yellow : Red);
             ImGui.SameLine();
-            Wrapped(isOutfit ? Yellow : Red, isOutfit ? Loc.T("name_taken_ours", name) : Loc.T("name_taken_other", name));
+            Wrapped(isOutfit ? Yellow : Red, isOutfit ? Loc.T("name_taken_ours", Names.Display(name)) : Loc.T("name_taken_other", Names.Display(name)));
             ImGui.Spacing();
         }
 
         var blocked = o.HasConflicts || noName || nameTaken;
-        var label = updateTarget != null ? Loc.T("create_update", name)
-                  : existing != null && isOutfit ? Loc.T("create_replace", name)
+        var label = updateTarget != null ? Loc.T("create_update", Names.Display(name))
+                  : existing != null && isOutfit ? Loc.T("create_replace", Names.Display(name))
                   : Loc.T("create");
 
         if (blocked)
@@ -543,7 +546,7 @@ public sealed class MainWindow : Window
             RefreshWardrobe();
 
         var outfits = wardrobe!.OutfitModFolders
-            .Where(kv => wardrobeFilter.Length == 0 || kv.Value.Contains(wardrobeFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(kv => wardrobeFilter.Length == 0 || Names.Simplify(kv.Value).Contains(Names.Simplify(wardrobeFilter), StringComparison.Ordinal))
             .OrderBy(kv => kv.Value, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -566,11 +569,12 @@ public sealed class MainWindow : Window
         }
 
         const ImGuiTableFlags flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX;
-        if (!ImGui.BeginTable("##wardrobe", 2, flags))
+        if (!ImGui.BeginTable("##wardrobe", 3, flags))
             return;
 
         ImGui.TableSetupColumn(Loc.T("tab_outfit"), ImGuiTableColumnFlags.WidthStretch, 3f);
-        ImGui.TableSetupColumn("##actions", ImGuiTableColumnFlags.WidthStretch, 2f);
+        ImGui.TableSetupColumn(Loc.T("col_design"), ImGuiTableColumnFlags.WidthStretch, 2.4f);
+        ImGui.TableSetupColumn("##actions", ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableHeadersRow();
 
         foreach (var (folder, name) in outfits)
@@ -582,7 +586,10 @@ public sealed class MainWindow : Window
             ImGui.AlignTextToFramePadding();
             Icon(FontAwesomeIcon.Tshirt, Accent);
             ImGui.SameLine();
-            ImGui.TextUnformatted(name);
+            ImGui.TextUnformatted(Names.Display(name));
+
+            ImGui.TableNextColumn();
+            DrawDesignPicker(folder);
 
             ImGui.TableNextColumn();
             if (ImGui.Button(Loc.T("wardrobe_wear") + "##wear"))
@@ -599,11 +606,82 @@ public sealed class MainWindow : Window
         ImGui.EndTable();
     }
 
+    /// <summary>Liste déroulante pour choisir (ou corriger) le design Glamourer d'une tenue.</summary>
+    private void DrawDesignPicker(string folder)
+    {
+        var linked = LinkedDesign(folder);
+        var preview = linked is { } id && designList.TryGetValue(id, out var dn) ? Names.Display(dn) : Loc.T("design_pick");
+
+        ImGui.SetNextItemWidth(-1);
+        if (linked == null)
+            ImGui.PushStyleColor(ImGuiCol.Text, Yellow);
+        var open = ImGui.BeginCombo("##design", preview);
+        if (linked == null)
+            ImGui.PopStyleColor();
+        Tooltip(Loc.T("design_pick_tip"));
+        if (!open)
+            return;
+
+        if (ImGui.IsWindowAppearing())
+        {
+            designFilter = string.Empty;
+            ImGui.SetKeyboardFocusHere();
+        }
+
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint("##design_search", Loc.T("search_hint"), ref designFilter, 64);
+
+        if (ImGui.Selectable(Loc.T("design_unlink") + "##unlink", linked == null))
+            LinkDesign(folder, null);
+
+        var filter = Names.Simplify(designFilter);
+        foreach (var (designId, designName) in designList
+                     .Where(d => filter.Length == 0 || Names.Simplify(d.Value).Contains(filter, StringComparison.Ordinal))
+                     .OrderBy(d => d.Value, StringComparer.CurrentCultureIgnoreCase)
+                     .Take(300))
+        {
+            if (ImGui.Selectable(Names.Display(designName) + "##" + designId, linked == designId))
+                LinkDesign(folder, designId);
+        }
+
+        ImGui.EndCombo();
+    }
+
+    /// <summary>Design associé à la tenue (s'il existe toujours dans Glamourer).</summary>
+    private Guid? LinkedDesign(string folder)
+        => plugin.Configuration.OutfitDesigns.TryGetValue(folder, out var id) && designList.ContainsKey(id) ? id : null;
+
+    private void LinkDesign(string folder, Guid? id)
+    {
+        if (id is { } g)
+            plugin.Configuration.OutfitDesigns[folder] = g;
+        else
+            plugin.Configuration.OutfitDesigns.Remove(folder);
+        plugin.SaveConfiguration();
+    }
+
     private void RefreshWardrobe()
     {
         try
         {
             wardrobe = ModScanner.Scan(plugin.Extractor.ModDirectory);
+            designList = plugin.Extractor.Designs();
+
+            // Tenues sans design associé : on cherche un design au nom proche (accents, tirets, nom raccourci).
+            var changed = false;
+            foreach (var (folder, name) in wardrobe.OutfitModFolders)
+            {
+                if (LinkedDesign(folder) != null)
+                    continue;
+                if (Names.BestDesign(name, designList) is { } id)
+                {
+                    plugin.Configuration.OutfitDesigns[folder] = id;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+                plugin.SaveConfiguration();
         }
         catch (Exception e)
         {
@@ -618,10 +696,11 @@ public sealed class MainWindow : Window
         try
         {
             var enabled = plugin.Extractor.SetModEnabled(folder, true);
-            var designs = plugin.Extractor.FindDesigns(name);
-            var design = designs.Count > 0 ? plugin.Extractor.ApplyDesign(designs[0]) : Loc.T("design_none");
-            wardrobeStatus = Loc.T("wardrobe_worn", name, enabled, design);
-            wardrobeStatusIsError = false;
+            var design = LinkedDesign(folder) is { } id
+                ? plugin.Extractor.ApplyDesign(id)
+                : Loc.T("design_none");
+            wardrobeStatus = Loc.T("wardrobe_worn", Names.Display(name), enabled, design);
+            wardrobeStatusIsError = LinkedDesign(folder) == null;
         }
         catch (Exception e)
         {
@@ -887,7 +966,7 @@ public sealed class MainWindow : Window
                 if (result == "Success" && id != Guid.Empty)
                 {
                     designId = id;
-                    msg += Loc.T("status_design_saved", modName);
+                    msg += Loc.T("status_design_saved", Names.Display(modName));
                 }
                 else
                 {
@@ -908,6 +987,9 @@ public sealed class MainWindow : Window
                     ? outfit.SourceMods.Where(m => m.Selected && !string.Equals(m.Directory, existingFolder, StringComparison.OrdinalIgnoreCase)).ToList()
                     : new List<SourceMod>();
                 pendingDesignId = config.ApplyDesignAfterCreate ? designId : Guid.Empty;
+                pendingLinkDesignId = designId;
+                if (existingFolder != null && existingIsOutfit)
+                    config.OutfitDesigns.Remove(existingFolder);
                 pendingDeadline = DateTime.Now.AddSeconds(30);
                 nextPoll = DateTime.Now;
                 msg += Loc.T("status_activating");
@@ -945,14 +1027,21 @@ public sealed class MainWindow : Window
             {
                 if (DateTime.Now > pendingDeadline)
                 {
-                    SetStatus(Loc.T("status_not_appeared", pendingModName), true);
+                    SetStatus(Loc.T("status_not_appeared", Names.Display(pendingModName)), true);
                     pendingModName = null;
                 }
 
                 return;
             }
 
-            var results = new List<string> { Loc.T("status_enabled", pendingModName, plugin.Extractor.SetModEnabled(dir, true)) };
+            // La tenue est reliée à son design pour le bouton « Porter » de Mes tenues.
+            if (pendingLinkDesignId != Guid.Empty)
+            {
+                plugin.Configuration.OutfitDesigns[dir] = pendingLinkDesignId;
+                plugin.SaveConfiguration();
+            }
+
+            var results = new List<string> { Loc.T("status_enabled", Names.Display(pendingModName), plugin.Extractor.SetModEnabled(dir, true)) };
 
             if (pendingDisableSources)
             {
@@ -984,6 +1073,7 @@ public sealed class MainWindow : Window
 
         pendingModName = null;
         pendingDesignId = Guid.Empty;
+        pendingLinkDesignId = Guid.Empty;
     }
 
     private void SetStatus(string text, bool error)

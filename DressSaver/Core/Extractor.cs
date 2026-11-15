@@ -73,6 +73,9 @@ public sealed class Extractor
     /// <summary>Supprime un mod de Penumbra. Utilisé uniquement pour remplacer une tenue créée par DressSaver.</summary>
     public string RemoveMod(string modDirectory) => deleteMod.Invoke(modDirectory).ToString();
 
+    /// <summary>Tous les designs de Glamourer : identifiant → nom.</summary>
+    public Dictionary<Guid, string> Designs() => getDesignList.Invoke();
+
     /// <summary>Designs Glamourer portant exactement ce nom.</summary>
     public List<Guid> FindDesigns(string name)
         => getDesignList.Invoke().Where(d => string.Equals(d.Value, name, StringComparison.OrdinalIgnoreCase)).Select(d => d.Key).ToList();
