@@ -13,7 +13,7 @@ public static class PmpWriter
 {
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
-    public static string Write(Outfit outfit, string modName, string author, string folder)
+    public static string Write(Outfit outfit, string modName, string author, string folder, string? description = null)
     {
         Directory.CreateDirectory(folder);
         var safe = string.Concat(modName.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
@@ -35,7 +35,7 @@ public static class PmpWriter
         using var zip = new ZipArchive(stream, ZipArchiveMode.Create);
 
         var groupNames = new List<string>();
-        var description = Loc.T("mod_description") + BuildCredits(outfit);
+        description ??= Loc.T("mod_description") + BuildCredits(outfit);
 
         WriteJson(zip, "meta.json", new JsonObject
         {

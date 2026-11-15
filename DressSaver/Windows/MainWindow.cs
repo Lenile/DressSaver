@@ -10,7 +10,7 @@ using DressSaver.Core;
 
 namespace DressSaver.Windows;
 
-public sealed class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
     // Palette
     private static readonly Vector4 Accent = new(0.78f, 0.62f, 1f, 1f);
@@ -558,8 +558,19 @@ public sealed class MainWindow : Window
         ImGui.SameLine();
         ImGui.TextColored(Grey, Loc.T("wardrobe_count", wardrobe.OutfitModFolders.Count));
 
+        var scanning = scanTask != null;
+        if (scanning || wardrobe.OutfitModFolders.Count == 0)
+            ImGui.BeginDisabled();
+        if (ImGui.Button(Loc.T("wardrobe_scan") + "##wardrobe_scan"))
+            StartConflictScan();
+        if (scanning || wardrobe.OutfitModFolders.Count == 0)
+            ImGui.EndDisabled();
+        Tooltip(Loc.T("wardrobe_scan_tip"));
+
         if (!string.IsNullOrEmpty(wardrobeStatus))
             Wrapped(wardrobeStatusIsError ? Red : Green, wardrobeStatus);
+
+        DrawConflictScan();
 
         ImGui.Spacing();
         if (wardrobe.OutfitModFolders.Count == 0)
@@ -1016,6 +1027,7 @@ public sealed class MainWindow : Window
     /// </summary>
     public void Tick()
     {
+        TickRelinks();
         if (pendingModName == null || DateTime.Now < nextPoll)
             return;
         nextPoll = DateTime.Now.AddMilliseconds(500);

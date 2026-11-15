@@ -345,6 +345,52 @@ public static class Loc
             "El diseño de Glamourer que aplica «Poner». Se encuentra solo si el nombre es parecido; si no, elígelo aquí.",
             "Das Glamourer-Design, das „Tragen“ anwendet. Wird bei ähnlichem Namen automatisch gefunden, sonst hier wählen.",
         },
+        ["wardrobe_scan"] = new[] { "Scanner les conflits", "Scan for conflicts", "Buscar conflictos", "Konflikte suchen" },
+        ["wardrobe_scan_tip"] = new[]
+        {
+            "Compare toutes tes tenues aux autres mods installés et liste les pièces en conflit, pour les déplacer sur un objet libre.",
+            "Compares all your outfits with your other installed mods and lists the conflicting pieces, so you can move them onto a free item.",
+            "Compara todos tus atuendos con tus otros mods instalados y lista las piezas en conflicto, para moverlas a un objeto libre.",
+            "Vergleicht alle deine Outfits mit deinen anderen installierten Mods und listet die Teile mit Konflikten auf, um sie auf ein freies Objekt zu verschieben.",
+        },
+        ["scan_running"] = new[] { "Scan en cours…", "Scanning…", "Buscando…", "Suche läuft…" },
+        ["scan_title"] = new[] { "Conflits trouvés : {0}", "Conflicts found: {0}", "Conflictos encontrados: {0}", "Gefundene Konflikte: {0}" },
+        ["scan_none"] = new[]
+        {
+            "Aucun conflit : tout est propre !",
+            "No conflicts: everything is clean!",
+            "Sin conflictos: ¡todo está limpio!",
+            "Keine Konflikte: alles sauber!",
+        },
+        ["col_outfit"] = new[] { "Tenue", "Outfit", "Atuendo", "Outfit" },
+        ["col_replacement"] = new[] { "Objet de remplacement", "Replacement item", "Objeto de reemplazo", "Ersatzobjekt" },
+        ["scan_keep"] = new[] { "(ne pas changer)", "(keep as is)", "(no cambiar)", "(nicht ändern)" },
+        ["scan_no_design"] = new[]
+        {
+            "Pas vérifiées, faute de design Glamourer associé (colonne Design) : {0}",
+            "Not checked, no Glamourer design linked (Design column): {0}",
+            "Sin comprobar, no hay diseño de Glamourer asociado (columna Diseño): {0}",
+            "Nicht geprüft, kein Glamourer-Design verknüpft (Spalte Design): {0}",
+        },
+        ["scan_error"] = new[] { "{0} : lecture impossible ({1})", "{0}: could not be read ({1})", "{0}: no se pudo leer ({1})", "{0}: konnte nicht gelesen werden ({1})" },
+        ["scan_apply"] = new[] { "Appliquer les remplacements ({0})", "Apply replacements ({0})", "Aplicar reemplazos ({0})", "Ersetzungen anwenden ({0})" },
+        ["scan_close"] = new[] { "Fermer", "Close", "Cerrar", "Schließen" },
+        ["scan_info"] = new[]
+        {
+            "Seules tes tenues DressSaver sont modifiées : elles sont réinstallées avec la pièce déplacée, et leur design Glamourer est mis à jour. Tes autres mods ne sont jamais touchés.",
+            "Only your DressSaver outfits are changed: they are reinstalled with the moved piece, and their Glamourer design is updated. Your other mods are never touched.",
+            "Solo se modifican tus atuendos de DressSaver: se reinstalan con la pieza movida y se actualiza su diseño de Glamourer. Tus otros mods nunca se tocan.",
+            "Nur deine DressSaver-Outfits werden geändert: Sie werden mit dem verschobenen Teil neu installiert und ihr Glamourer-Design wird aktualisiert. Deine anderen Mods werden nie angefasst.",
+        },
+        ["scan_applied"] = new[]
+        {
+            "{0} tenue(s) mise(s) à jour. Relance le scan dans quelques secondes pour vérifier.",
+            "{0} outfit(s) updated. Run the scan again in a few seconds to check.",
+            "{0} atuendo(s) actualizado(s). Vuelve a buscar en unos segundos para comprobarlo.",
+            "{0} Outfit(s) aktualisiert. Starte die Suche in ein paar Sekunden erneut, um es zu prüfen.",
+        },
+        ["scan_failed"] = new[] { "{0} : échec ({1}).", "{0}: failed ({1}).", "{0}: error ({1}).", "{0}: fehlgeschlagen ({1})." },
+        ["err_mod_empty"] = new[] { "Aucun fichier trouvé dans le mod « {0} ».", "No files found in mod \"{0}\".", "No se encontraron archivos en el mod «{0}».", "Keine Dateien im Mod „{0}“ gefunden." },
         ["design_unlink"] = new[] { "(aucun)", "(none)", "(ninguno)", "(keins)" },
         ["update_banner"] = new[]
         {

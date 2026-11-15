@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -147,6 +148,27 @@ public sealed class ModScanner
             if (m.Success)
                 TouchedSets.Add(m.Groups[2].Value + m.Groups[3].Value);
         }
+    }
+
+    private ILookup<string, ModFile>? byGamePath;
+    private readonly Dictionary<string, string> hashes = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Fichiers des mods regroupés par chemin de jeu (recherche rapide des conflits).</summary>
+    public ILookup<string, ModFile> ByGamePath => byGamePath ??= Files.ToLookup(f => f.GamePath);
+
+    /// <summary>Empreinte d'un fichier de mod, calculée une seule fois.</summary>
+    public string HashOf(string diskPath)
+    {
+        lock (hashes)
+        {
+            if (hashes.TryGetValue(diskPath, out var h))
+                return h;
+        }
+
+        var hash = Hash(diskPath);
+        lock (hashes)
+            hashes[diskPath] = hash;
+        return hash;
     }
 
     public static string Hash(string diskPath)

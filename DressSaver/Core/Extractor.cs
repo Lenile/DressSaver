@@ -38,6 +38,9 @@ public sealed class Extractor
     private readonly Glamourer.Api.IpcSubscribers.GetDesignList getDesignList;
     private readonly Glamourer.Api.IpcSubscribers.DeleteDesign deleteDesign;
     private readonly Penumbra.Api.IpcSubscribers.DeleteMod deleteMod;
+    private readonly GetCurrentModSettings getModSettings;
+    private readonly Glamourer.Api.IpcSubscribers.GetDesignBase64 getDesignBase64;
+    private readonly Glamourer.Api.IpcSubscribers.GetExtendedDesignData getDesignData;
 
     public Extractor(IDalamudPluginInterface pi, ItemCatalog items, IPluginLog log)
     {
@@ -57,6 +60,9 @@ public sealed class Extractor
         getDesignList = new Glamourer.Api.IpcSubscribers.GetDesignList(pi);
         deleteDesign = new Glamourer.Api.IpcSubscribers.DeleteDesign(pi);
         deleteMod = new Penumbra.Api.IpcSubscribers.DeleteMod(pi);
+        getModSettings = new GetCurrentModSettings(pi);
+        getDesignBase64 = new Glamourer.Api.IpcSubscribers.GetDesignBase64(pi);
+        getDesignData = new Glamourer.Api.IpcSubscribers.GetExtendedDesignData(pi);
     }
 
     public string ModDirectory => getModDirectory.Invoke();
@@ -75,6 +81,26 @@ public sealed class Extractor
 
     /// <summary>Tous les designs de Glamourer : identifiant → nom.</summary>
     public Dictionary<Guid, string> Designs() => getDesignList.Invoke();
+
+    /// <summary>Contenu d'un design Glamourer (base64), null s'il n'existe plus.</summary>
+    public string? DesignBase64(Guid id) => getDesignBase64.Invoke(id);
+
+    /// <summary>Chemin complet d'un design dans Glamourer (dossiers compris), pour le recréer au même endroit.</summary>
+    public string DesignPath(Guid id)
+    {
+        var data = getDesignData.Invoke(id);
+        return string.IsNullOrEmpty(data.FullPath) ? data.DisplayName : data.FullPath;
+    }
+
+    /// <summary>Le mod est-il activé dans la collection du personnage ?</summary>
+    public bool IsModEnabled(string modDirectory)
+    {
+        var (valid, _, collection) = getCollection.Invoke(0);
+        if (!valid)
+            return false;
+        var (_, settings) = getModSettings.Invoke(collection.Id, modDirectory);
+        return settings?.Item1 == true;
+    }
 
     /// <summary>Designs Glamourer portant exactement ce nom.</summary>
     public List<Guid> FindDesigns(string name)
@@ -345,6 +371,104 @@ public sealed class Extractor
         return outfit;
     }
 
+    /// <summary>
+    /// Recharge une tenue DressSaver déjà installée (ses fichiers, ses pièces et ses métadonnées) depuis
+    /// son dossier Penumbra, pour pouvoir déplacer une pièce et la réinstaller.
+    /// </summary>
+    public Outfit LoadInstalled(string folder, ModScanner scanner, GlamourerDesign design)
+    {
+        var outfit = new Outfit { Design = design };
+        var files = scanner.Files.Where(f => string.Equals(Path.GetFileName(f.ModFolder), folder, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (files.Count == 0)
+            throw new InvalidOperationException(Loc.T("err_mod_empty", folder));
+
+        foreach (var f in files)
+        {
+            if (outfit.Files.ContainsKey(f.GamePath) || !File.Exists(f.DiskPath))
+                continue;
+            var group = f.GamePath.StartsWith("chara/accessory/") ? FileGroup.Accessoires
+                      : f.GamePath.Contains("/obj/hair/") ? FileGroup.Cheveux
+                      : f.GamePath.StartsWith("chara/common/texture/decal_face/") ? FileGroup.Maquillage
+                      : FileGroup.Tenue;
+            outfit.Files[f.GamePath] = new OutfitFile { GamePath = f.GamePath, Data = File.ReadAllBytes(f.DiskPath), Group = group };
+            outfit.DiskPaths[f.GamePath] = f.DiskPath;
+        }
+
+        // Pièces : un modèle ou un matériau remplacé par emplacement.
+        foreach (var gp in outfit.Files.Keys.Where(k => k.EndsWith(".mdl") || k.EndsWith(".mtrl")).OrderBy(k => k).ToList())
+        {
+            var m = EquipModel.Match(gp);
+            if (!m.Success)
+                continue;
+            var tag = m.Groups[2].Value + m.Groups[3].Value;
+            var slot = Slots.FromSuffix(m.Groups[4].Value);
+            if (BodySets.Contains(tag) || slot == null)
+                continue;
+            var set = int.Parse(m.Groups[3].Value);
+            if (outfit.Pieces.Any(p => p.Set == set && p.Slot.Name == slot.Name))
+                continue;
+
+            // L'objet du design s'il utilise bien ce modèle, sinon le premier objet du jeu qui l'utilise.
+            var designItem = items.Get(design.ItemOf(slot.Name));
+            var item = designItem != null && designItem.Set == set ? designItem : items.UsingSet(slot, set).FirstOrDefault();
+            outfit.Pieces.Add(new OutfitPiece
+            {
+                Slot = slot,
+                Set = set,
+                ItemId = item?.Id ?? 0,
+                ItemName = item?.Name ?? $"{tag} ({Loc.Slot(slot.Name)})",
+            });
+        }
+
+        foreach (var piece in outfit.Pieces)
+            piece.OldModel = PieceFiles(outfit, piece)
+                .Where(p => p.EndsWith(".mdl") && outfit.Files.ContainsKey(p))
+                .Any(p => !FileFormats.IsDawntrailModel(outfit.Files[p].Data));
+
+        // Métadonnées : toutes les « Manipulations » du mod (nouveau format dans meta.json, ancien dans les autres fichiers).
+        var modPath = files[0].ModFolder;
+        var seen = new HashSet<string>();
+        var jsons = new List<string> { Path.Combine(modPath, "meta.json"), Path.Combine(modPath, "default_mod.json") };
+        if (Directory.Exists(modPath))
+            jsons.AddRange(Directory.EnumerateFiles(modPath, "group_*.json"));
+        foreach (var json in jsons.Where(File.Exists))
+            if (System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(json)) is { } node)
+                CollectManipulations(node, outfit, seen);
+
+        outfit.HairStyle = int.TryParse((design.Root["Customize"]?["Hairstyle"]?["Value"])?.ToString(), out var h) ? h : 0;
+        return outfit;
+    }
+
+    private static void CollectManipulations(System.Text.Json.Nodes.JsonNode node, Outfit outfit, HashSet<string> seen)
+    {
+        switch (node)
+        {
+            case System.Text.Json.Nodes.JsonObject obj:
+                foreach (var (key, value) in obj)
+                {
+                    if (value == null)
+                        continue;
+                    if (key == "Manipulations" && value is System.Text.Json.Nodes.JsonArray arr)
+                    {
+                        foreach (var m in arr)
+                            if (m is System.Text.Json.Nodes.JsonObject manip && seen.Add(manip.ToJsonString()))
+                                outfit.Meta.Add((System.Text.Json.Nodes.JsonObject)manip.DeepClone());
+                    }
+                    else
+                    {
+                        CollectManipulations(value, outfit, seen);
+                    }
+                }
+
+                break;
+            case System.Text.Json.Nodes.JsonArray list:
+                foreach (var item in list)
+                    if (item != null)
+                        CollectManipulations(item, outfit, seen);
+                break;
+        }
+    }
+
     /// <summary>Compare la tenue aux mods déjà créés par DressSaver.</summary>
     public void FindConflicts(Outfit outfit, ModScanner scanner, bool compareAllMods, bool ignoreSourceMods)
     {
@@ -355,8 +479,7 @@ public sealed class Extractor
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         bool Keep(ModFile f) => !excluded.Contains(Path.GetFileName(f.ModFolder));
 
-        var outfitMods = scanner.Files.Where(f => f.IsDressSaver && Keep(f)).ToList();
-        var ours = compareAllMods ? scanner.Files.Where(Keep).ToList() : outfitMods;
+        bool Compared(ModFile f) => Keep(f) && (compareAllMods || f.IsDressSaver);
         outfit.DiagPieceFiles = outfit.DiagSameFiles = outfit.DiagDifferentFiles = 0;
         foreach (var piece in outfit.Pieces)
         {
@@ -367,11 +490,12 @@ public sealed class Extractor
             outfit.DiagPieceFiles += mine.Count;
             foreach (var file in mine)
             {
-                foreach (var other in ours.Where(o => o.GamePath == file.GamePath))
+                var mineHash = ModScanner.Hash(file.Data);
+                foreach (var other in scanner.ByGamePath[file.GamePath].Where(Compared))
                 {
                     if (!File.Exists(other.DiskPath))
                         continue;
-                    if (ModScanner.Hash(other.DiskPath) == ModScanner.Hash(file.Data))
+                    if (scanner.HashOf(other.DiskPath) == mineHash)
                     {
                         piece.SharedWith.Add(other.ModName);
                         outfit.DiagSameFiles++;
@@ -392,8 +516,8 @@ public sealed class Extractor
         // Coiffures : uniquement contre les tenues DressSaver (une coiffure ne peut pas être déplacée,
         // les comparer à tous les mods de cheveux installés n'apporterait que du bruit).
         foreach (var file in outfit.InGroup(FileGroup.Cheveux))
-            foreach (var other in outfitMods.Where(o => o.GamePath == file.GamePath && File.Exists(o.DiskPath)))
-                if (ModScanner.Hash(other.DiskPath) != ModScanner.Hash(file.Data))
+            foreach (var other in scanner.ByGamePath[file.GamePath].Where(o => o.IsDressSaver && Keep(o) && File.Exists(o.DiskPath)))
+                if (scanner.HashOf(other.DiskPath) != ModScanner.Hash(file.Data))
                     outfit.HairConflicts.Add(new Conflict(other.ModName, file.GamePath));
     }
 
