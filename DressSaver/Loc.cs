@@ -44,6 +44,101 @@ public static class Loc
     // Clé → { français, anglais, espagnol, allemand }
     private static readonly Dictionary<string, string[]> Strings = new()
     {
+        // --- Interface (0.3) ---
+        ["tab_outfit"] = new[] { "Tenue", "Outfit", "Atuendo", "Outfit" },
+        ["subtitle"] = new[]
+        {
+            "Enregistre la tenue portée en un mod Penumbra propre.",
+            "Save the outfit you're wearing as a clean Penumbra mod.",
+            "Guarda el atuendo que llevas como un mod de Penumbra limpio.",
+            "Speichere dein getragenes Outfit als sauberen Penumbra-Mod.",
+        },
+        ["name_hint"] = new[] { "Nom de la tenue…", "Outfit name…", "Nombre del atuendo…", "Name des Outfits…" },
+        ["include_label"] = new[] { "Inclure :", "Include:", "Incluir:", "Einschließen:" },
+        ["pieces_title"] = new[] { "Pièces de la tenue", "Outfit pieces", "Piezas del atuendo", "Teile des Outfits" },
+        ["col_slot"] = new[] { "Emplacement", "Slot", "Ranura", "Slot" },
+        ["col_item"] = new[] { "Objet", "Item", "Objeto", "Item" },
+        ["col_model"] = new[] { "Modèle", "Model", "Modelo", "Modell" },
+        ["col_status"] = new[] { "État", "Status", "Estado", "Status" },
+        ["state_free"] = new[] { "Libre", "Free", "Libre", "Frei" },
+        ["state_shared"] = new[] { "Partagé", "Shared", "Compartido", "Geteilt" },
+        ["state_conflict"] = new[] { "Conflit", "Conflict", "Conflicto", "Konflikt" },
+        ["state_moved"] = new[] { "Déplacé", "Moved", "Movido", "Verschoben" },
+        ["state_ignored"] = new[] { "Ignoré", "Ignored", "Ignorado", "Ignoriert" },
+        ["tip_free"] = new[]
+        {
+            "Aucun autre mod ne modifie cet objet.",
+            "No other mod changes this item.",
+            "Ningún otro mod modifica este objeto.",
+            "Kein anderer Mod verändert dieses Item.",
+        },
+        ["moved_to"] = new[] { "Sera déplacé sur : {0}", "Will be moved onto: {0}", "Se moverá a: {0}", "Wird verschoben auf: {0}" },
+        ["conflicts_title"] = new[] { "Conflits à résoudre", "Conflicts to solve", "Conflictos por resolver", "Zu lösende Konflikte" },
+        ["picker_help"] = new[]
+        {
+            "Choisis un objet libre : ta pièce sera déplacée dessus, et le design Glamourer suivra. Prends de préférence un objet de forme proche.",
+            "Pick a free item: your piece will be moved onto it, and the Glamourer design will follow. Prefer an item with a similar shape.",
+            "Elige un objeto libre: tu pieza se moverá a él y el diseño de Glamourer lo seguirá. Mejor un objeto de forma parecida.",
+            "Wähle ein freies Item: Dein Teil wird darauf verschoben und das Glamourer-Design folgt. Am besten ein Item mit ähnlicher Form.",
+        },
+        ["search_hint"] = new[] { "Rechercher un objet…", "Search an item…", "Buscar un objeto…", "Item suchen…" },
+        ["options_title"] = new[] { "Après la création", "After creation", "Tras la creación", "Nach der Erstellung" },
+        ["ready"] = new[] { "Prêt à créer le mod.", "Ready to create the mod.", "Listo para crear el mod.", "Bereit, den Mod zu erstellen." },
+        ["section_general"] = new[] { "Général", "General", "General", "Allgemein" },
+        ["section_files"] = new[] { "Fichiers", "Files", "Archivos", "Dateien" },
+        ["section_penumbra"] = new[] { "Penumbra", "Penumbra", "Penumbra", "Penumbra" },
+        ["section_glamourer"] = new[] { "Glamourer", "Glamourer", "Glamourer", "Glamourer" },
+        ["save_design"] = new[]
+        {
+            "Enregistrer le design dans Glamourer",
+            "Save the design in Glamourer",
+            "Guardar el diseño en Glamourer",
+            "Design in Glamourer speichern",
+        },
+        ["apply_design"] = new[]
+        {
+            "Appliquer la tenue sur le perso après création",
+            "Apply the outfit to your character after creation",
+            "Aplicar el atuendo a tu personaje tras la creación",
+            "Outfit nach der Erstellung auf den Charakter anwenden",
+        },
+        ["apply_design_info"] = new[]
+        {
+            "Une fois le mod installé et activé dans Penumbra.",
+            "Once the mod is installed and enabled in Penumbra.",
+            "Una vez instalado y activado el mod en Penumbra.",
+            "Sobald der Mod in Penumbra installiert und aktiviert ist.",
+        },
+        ["status_design_saved"] = new[]
+        {
+            " Design « {0} » ajouté à Glamourer.",
+            " Design \"{0}\" added to Glamourer.",
+            " Diseño «{0}» añadido a Glamourer.",
+            " Design „{0}“ zu Glamourer hinzugefügt.",
+        },
+        ["status_design_failed"] = new[]
+        {
+            " Design non ajouté à Glamourer ({0}) : il est dans le presse-papier.",
+            " Design not added to Glamourer ({0}): it's in your clipboard.",
+            " Diseño no añadido a Glamourer ({0}): está en el portapapeles.",
+            " Design nicht zu Glamourer hinzugefügt ({0}): Es ist in der Zwischenablage.",
+        },
+        ["status_design_applied"] = new[] { "tenue appliquée ({0})", "outfit applied ({0})", "atuendo aplicado ({0})", "Outfit angewendet ({0})" },
+        ["status_files_saved"] = new[]
+        {
+            "Mod créé : {0}.",
+            "Mod created: {0}.",
+            "Mod creado: {0}.",
+            "Mod erstellt: {0}.",
+        },
+        ["status_clipboard"] = new[]
+        {
+            " Design copié dans le presse-papier.",
+            " Design copied to clipboard.",
+            " Diseño copiado al portapapeles.",
+            " Design in die Zwischenablage kopiert.",
+        },
+
         // --- Réglages ---
         ["settings"] = new[] { "Réglages", "Settings", "Ajustes", "Einstellungen" },
         ["language"] = new[] { "Langue", "Language", "Idioma", "Sprache" },

@@ -30,4 +30,10 @@ public class Configuration : IPluginConfiguration
 
     /// <summary>Conflits : comparer avec tous les mods installés (sinon seulement les tenues DressSaver).</summary>
     public bool CompareAllMods { get; set; } = true;
+
+    /// <summary>Enregistre le design de la tenue directement dans la liste de Glamourer.</summary>
+    public bool SaveDesignToGlamourer { get; set; } = true;
+
+    /// <summary>Applique le design sur le personnage une fois le mod installé et activé.</summary>
+    public bool ApplyDesignAfterCreate { get; set; } = true;
 }

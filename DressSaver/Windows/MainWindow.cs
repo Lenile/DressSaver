@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using DressSaver.Core;
 
@@ -11,10 +12,17 @@ namespace DressSaver.Windows;
 
 public sealed class MainWindow : Window
 {
+    // Palette
+    private static readonly Vector4 Accent = new(0.78f, 0.62f, 1f, 1f);
     private static readonly Vector4 Red = new(1f, 0.45f, 0.45f, 1f);
-    private static readonly Vector4 Green = new(0.5f, 0.9f, 0.5f, 1f);
-    private static readonly Vector4 Grey = new(0.65f, 0.65f, 0.65f, 1f);
-    private static readonly Vector4 Yellow = new(1f, 0.85f, 0.4f, 1f);
+    private static readonly Vector4 Green = new(0.45f, 0.85f, 0.55f, 1f);
+    private static readonly Vector4 Grey = new(0.62f, 0.62f, 0.66f, 1f);
+    private static readonly Vector4 Yellow = new(1f, 0.82f, 0.4f, 1f);
+    private static readonly Vector4 Blue = new(0.5f, 0.75f, 1f, 1f);
+
+    private static readonly Vector4 CreateButton = new(0.22f, 0.55f, 0.32f, 1f);
+    private static readonly Vector4 CreateButtonHover = new(0.28f, 0.66f, 0.39f, 1f);
+    private static readonly Vector4 CreateButtonActive = new(0.18f, 0.46f, 0.27f, 1f);
 
     private readonly Plugin plugin;
 
@@ -30,85 +38,371 @@ public sealed class MainWindow : Window
     private string status = string.Empty;
     private bool statusIsError;
 
-    // Activation du nouveau mod et désactivation des mods d'origine, une fois que Penumbra a fini l'installation.
+    // Activation du nouveau mod (puis désactivation des mods d'origine et application du design),
+    // une fois que Penumbra a fini l'installation.
     private string? pendingModName;
     private List<SourceMod> pendingSources = new();
+    private bool pendingDisableSources;
+    private Guid pendingDesignId = Guid.Empty;
     private DateTime pendingDeadline;
     private DateTime nextPoll;
 
     public MainWindow(Plugin plugin) : base("DressSaver##DressSaverMain")
     {
         this.plugin = plugin;
+        Size = new Vector2(640, 620);
+        SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(520, 420),
-            MaximumSize = new Vector2(1400, 1400),
+            MaximumSize = new Vector2(1600, 1600),
         };
     }
+
+    // ------------------------------------------------------------------ Mise en page
 
     public override void Draw()
     {
         PollPendingActivation();
 
-        DrawSettings();
+        ImGui.TextColored(Accent, "DressSaver");
+        ImGui.SameLine();
+        ImGui.TextColored(Grey, Loc.T("subtitle"));
+        ImGui.Spacing();
 
-        ImGui.InputText(Loc.T("outfit_name"), ref outfitName, 128);
+        if (!ImGui.BeginTabBar("##dresssaver_tabs"))
+            return;
+
+        if (ImGui.BeginTabItem(Loc.T("tab_outfit") + "###tab_outfit"))
+        {
+            DrawOutfitTab();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem(Loc.T("settings") + "###tab_settings"))
+        {
+            DrawSettingsTab();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem(Loc.T("diagnostic") + "###tab_diag"))
+        {
+            DrawDiagnosticsTab();
+            ImGui.EndTabItem();
+        }
+
+        ImGui.EndTabBar();
+    }
+
+    private static void Heading(string text)
+    {
+        ImGui.Spacing();
+        ImGui.TextColored(Accent, text);
+        ImGui.Separator();
+        ImGui.Spacing();
+    }
+
+    private static void Icon(FontAwesomeIcon icon, Vector4 color)
+    {
+        ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextColored(color, icon.ToIconString());
+        ImGui.PopFont();
+    }
+
+    private static void Tooltip(string text)
+    {
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(text);
+    }
+
+    private static void Wrapped(Vector4 color, string text)
+    {
+        ImGui.PushStyleColor(ImGuiCol.Text, color);
+        ImGui.TextWrapped(text);
+        ImGui.PopStyleColor();
+    }
+
+    // ------------------------------------------------------------------ Onglet Tenue
+
+    private void DrawOutfitTab()
+    {
+        ImGui.Spacing();
+        var fullWidth = ImGui.GetContentRegionAvail().X;
+
+        ImGui.SetNextItemWidth(fullWidth);
+        ImGui.InputTextWithHint("##outfit_name", Loc.T("name_hint"), ref outfitName, 128);
+
+        ImGui.TextColored(Grey, Loc.T("include_label"));
+        ImGui.SameLine();
         ImGui.Checkbox(Loc.T("accessories"), ref includeAccessories);
         ImGui.SameLine();
         ImGui.Checkbox(Loc.T("hair"), ref includeHair);
         ImGui.SameLine();
         ImGui.Checkbox(Loc.T("makeup"), ref includeMakeup);
 
-        if (ImGui.Button(Loc.T("analyze")))
+        ImGui.Spacing();
+        if (ImGui.Button(Loc.T("analyze") + "##analyze", new Vector2(fullWidth, 30)))
             Analyze();
 
         if (!string.IsNullOrEmpty(status))
-            ImGui.TextColored(statusIsError ? Red : Green, status);
+        {
+            ImGui.Spacing();
+            Wrapped(statusIsError ? Red : Green, status);
+        }
 
         if (outfit == null)
         {
-            ImGui.Separator();
-            ImGui.TextWrapped(Loc.T("hint_equip"));
+            ImGui.Spacing();
+            Wrapped(Grey, Loc.T("hint_equip"));
             return;
         }
 
-        ImGui.Separator();
-        DrawPieces(outfit);
+        Heading(Loc.T("pieces_title"));
+        DrawPiecesTable(outfit);
+        DrawConflicts(outfit);
 
-        ImGui.Separator();
-        ImGui.TextUnformatted(Loc.T("files_summary",
-            outfit.InGroup(FileGroup.Tenue).Count(),
-            outfit.InGroup(FileGroup.Accessoires).Count(),
-            outfit.InGroup(FileGroup.Cheveux).Count(),
-            outfit.InGroup(FileGroup.Maquillage).Count(),
-            outfit.Meta.Count));
+        if (outfit.HairConflicts.Count > 0)
+        {
+            var mods = string.Join(", ", outfit.HairConflicts.Select(c => c.ModName).Distinct());
+            ImGui.Spacing();
+            Wrapped(Red, Loc.T("hair_conflict", outfit.HairStyle, mods));
+        }
 
         DrawSources(outfit);
-        DrawCredits(outfit);
-        DrawDiagnostics(outfit);
 
-        var blocked = outfit.HasConflicts || string.IsNullOrWhiteSpace(outfitName);
-        if (blocked)
-            ImGui.BeginDisabled();
-        if (ImGui.Button(Loc.T("create")))
-            Create();
-        if (blocked)
+        var credits = PmpWriter.BuildCredits(outfit).Trim();
+        if (credits.Length > 0 && ImGui.CollapsingHeader(Loc.T("credits_preview") + "###credits"))
+            Wrapped(Grey, credits);
+
+        DrawCreateButton(outfit);
+    }
+
+    private void DrawPiecesTable(Outfit o)
+    {
+        if (o.Pieces.Count == 0)
         {
-            ImGui.EndDisabled();
+            Wrapped(Grey, Loc.T("no_pieces"));
+            return;
+        }
+
+        const ImGuiTableFlags flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX;
+        if (!ImGui.BeginTable("##pieces", 4, flags))
+            return;
+
+        ImGui.TableSetupColumn(Loc.T("col_slot"), ImGuiTableColumnFlags.WidthStretch, 1.1f);
+        ImGui.TableSetupColumn(Loc.T("col_item"), ImGuiTableColumnFlags.WidthStretch, 2.4f);
+        ImGui.TableSetupColumn(Loc.T("col_model"), ImGuiTableColumnFlags.WidthStretch, 0.7f);
+        ImGui.TableSetupColumn(Loc.T("col_status"), ImGuiTableColumnFlags.WidthStretch, 1.0f);
+        ImGui.TableHeadersRow();
+
+        foreach (var piece in o.Pieces)
+        {
+            ImGui.TableNextRow();
+
+            ImGui.TableNextColumn();
+            ImGui.TextColored(Grey, Loc.Slot(piece.Slot.Name));
+
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(piece.ItemName);
+            if (piece.Replacement != null && !piece.IgnoreConflict && piece.Conflicts.Count > 0)
+            {
+                ImGui.TextColored(Yellow, "→ " + piece.Replacement.Name);
+            }
+
+            ImGui.TableNextColumn();
+            ImGui.TextColored(Grey, piece.Tag);
+
+            ImGui.TableNextColumn();
+            DrawPieceState(piece);
+        }
+
+        ImGui.EndTable();
+    }
+
+    private static void DrawPieceState(OutfitPiece piece)
+    {
+        FontAwesomeIcon icon;
+        Vector4 color;
+        string label;
+        string tip;
+
+        if (piece.Conflicts.Count > 0)
+        {
+            var mods = string.Join(", ", piece.Conflicts.Select(c => c.ModName).Distinct());
+            if (piece.IgnoreConflict)
+            {
+                (icon, color, label) = (FontAwesomeIcon.EyeSlash, Grey, Loc.T("state_ignored"));
+                tip = Loc.T("conflict_with", mods);
+            }
+            else if (piece.Replacement != null)
+            {
+                (icon, color, label) = (FontAwesomeIcon.ArrowRight, Yellow, Loc.T("state_moved"));
+                tip = Loc.T("moved_to", piece.Replacement.Name);
+            }
+            else
+            {
+                (icon, color, label) = (FontAwesomeIcon.ExclamationTriangle, Red, Loc.T("state_conflict"));
+                tip = Loc.T("conflict_with", mods);
+            }
+        }
+        else if (piece.SharedWith.Count > 0)
+        {
+            (icon, color, label) = (FontAwesomeIcon.Link, Blue, Loc.T("state_shared"));
+            tip = Loc.T("shared_with", string.Join(", ", piece.SharedWith));
+        }
+        else
+        {
+            (icon, color, label) = (FontAwesomeIcon.Check, Green, Loc.T("state_free"));
+            tip = Loc.T("tip_free");
+        }
+
+        ImGui.BeginGroup();
+        Icon(icon, color);
+        ImGui.SameLine();
+        ImGui.TextColored(color, label);
+        ImGui.EndGroup();
+        Tooltip(tip);
+    }
+
+    private void DrawConflicts(Outfit o)
+    {
+        var conflicting = o.Pieces.Where(p => p.Conflicts.Count > 0).ToList();
+        if (conflicting.Count == 0)
+            return;
+
+        Heading(Loc.T("conflicts_title"));
+        Wrapped(Grey, Loc.T("picker_help"));
+        ImGui.Spacing();
+
+        foreach (var piece in conflicting)
+        {
+            ImGui.PushID(piece.GetHashCode());
+
+            Icon(piece.IgnoreConflict ? FontAwesomeIcon.EyeSlash : piece.Replacement != null ? FontAwesomeIcon.ArrowRight : FontAwesomeIcon.ExclamationTriangle,
+                 piece.IgnoreConflict ? Grey : piece.Replacement != null ? Yellow : Red);
             ImGui.SameLine();
-            ImGui.TextColored(Grey, string.IsNullOrWhiteSpace(outfitName) ? Loc.T("need_name") : Loc.T("need_replacement"));
+            ImGui.TextUnformatted($"{Loc.Slot(piece.Slot.Name)} : {piece.ItemName}");
+            var mods = string.Join(", ", piece.Conflicts.Select(c => c.ModName).Distinct());
+            ImGui.TextColored(Grey, "   " + Loc.T("conflict_with", mods));
+
+            ImGui.Indent();
+            var ignore = piece.IgnoreConflict;
+            if (ImGui.Checkbox(Loc.T("ignore_conflict"), ref ignore))
+                piece.IgnoreConflict = ignore;
+
+            if (!piece.IgnoreConflict)
+                DrawReplacementPicker(o, piece);
+            ImGui.Unindent();
+
+            ImGui.Spacing();
+            ImGui.PopID();
         }
     }
 
-    private void DrawSettings()
+    private void DrawReplacementPicker(Outfit o, OutfitPiece piece)
+    {
+        if (!freeItems.TryGetValue(piece, out var list))
+        {
+            list = plugin.Extractor.FreeItems(o, piece.Slot, scanner!);
+            freeItems[piece] = list;
+        }
+
+        filters.TryGetValue(piece, out var filter);
+        filter ??= string.Empty;
+
+        var width = ImGui.GetContentRegionAvail().X;
+        ImGui.SetNextItemWidth(width * 0.4f);
+        if (ImGui.InputTextWithHint("##search", Loc.T("search_hint"), ref filter, 64))
+            filters[piece] = filter;
+
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        var preview = piece.Replacement != null
+            ? $"{piece.Replacement.Name} ({Slots.Tag(piece.Slot.Kind, piece.Replacement.Set)})"
+            : Loc.T("replacement_placeholder");
+        if (ImGui.BeginCombo("##replacement", preview))
+        {
+            foreach (var item in list.Where(i => filter.Length == 0 || i.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).Take(300))
+            {
+                var label = $"{item.Name}  —  {Slots.Tag(piece.Slot.Kind, item.Set)} v{item.Variant}##{item.Id}";
+                if (ImGui.Selectable(label, piece.Replacement?.Id == item.Id))
+                    piece.Replacement = item;
+            }
+
+            ImGui.EndCombo();
+        }
+
+        ImGui.TextColored(Grey, Loc.T("free_count", list.Count));
+    }
+
+    private void DrawSources(Outfit o)
     {
         var config = plugin.Configuration;
-        if (!ImGui.CollapsingHeader(Loc.T("settings") + "###settings"))
+        if (!config.AutoInstall || !config.DisableSourceMods)
             return;
 
-        // Langue
+        Heading(Loc.T("sources_title"));
+        if (o.SourceMods.Count == 0)
+        {
+            Wrapped(Grey, Loc.T("no_sources"));
+            return;
+        }
+
+        foreach (var src in o.SourceMods)
+        {
+            ImGui.PushID(src.Directory);
+            var selected = src.Selected;
+            if (ImGui.Checkbox(src.Name, ref selected))
+                src.Selected = selected;
+            ImGui.SameLine();
+            if (src.OnlyOutfit)
+                ImGui.TextColored(Grey, Loc.T("source_only", src.UsedFiles));
+            else
+                ImGui.TextColored(Yellow, Loc.T("source_mixed", src.UsedFiles, src.TotalFiles));
+            ImGui.PopID();
+        }
+
+        ImGui.Spacing();
+        Icon(FontAwesomeIcon.ExclamationCircle, Yellow);
+        ImGui.SameLine();
+        Wrapped(Yellow, Loc.T("freeze_short"));
+    }
+
+    private void DrawCreateButton(Outfit o)
+    {
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        var noName = string.IsNullOrWhiteSpace(outfitName);
+        var blocked = o.HasConflicts || noName;
+
+        if (blocked)
+            ImGui.BeginDisabled();
+        ImGui.PushStyleColor(ImGuiCol.Button, CreateButton);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, CreateButtonHover);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, CreateButtonActive);
+        if (ImGui.Button(Loc.T("create") + "##create", new Vector2(ImGui.GetContentRegionAvail().X, 36)))
+            Create();
+        ImGui.PopStyleColor(3);
+        if (blocked)
+            ImGui.EndDisabled();
+
+        if (blocked)
+            ImGui.TextColored(Yellow, noName ? Loc.T("need_name") : Loc.T("need_replacement"));
+        else
+            ImGui.TextColored(Grey, Loc.T("ready"));
+    }
+
+    // ------------------------------------------------------------------ Onglet Réglages
+
+    private void DrawSettingsTab()
+    {
+        var config = plugin.Configuration;
+
+        Heading(Loc.T("section_general"));
         var currentName = Loc.Languages.First(l => l.Code == Loc.Current).Name;
-        ImGui.SetNextItemWidth(200);
+        ImGui.SetNextItemWidth(220);
         if (ImGui.BeginCombo(Loc.T("language"), currentName))
         {
             foreach (var (code, name) in Loc.Languages)
@@ -124,6 +418,7 @@ public sealed class MainWindow : Window
             ImGui.EndCombo();
         }
 
+        Heading(Loc.T("section_files"));
         var folder = config.OutputFolder;
         if (ImGui.InputText(Loc.T("output_folder"), ref folder, 512))
         {
@@ -145,6 +440,7 @@ public sealed class MainWindow : Window
             plugin.SaveConfiguration();
         }
 
+        Heading(Loc.T("section_penumbra"));
         var compareAll = config.CompareAllMods;
         if (ImGui.Checkbox(Loc.T("compare_all"), ref compareAll))
         {
@@ -171,110 +467,74 @@ public sealed class MainWindow : Window
         if (!config.AutoInstall)
             ImGui.EndDisabled();
 
-        ImGui.TextColored(Grey, "   " + Loc.T("disable_info1"));
-        ImGui.TextColored(Grey, "   " + Loc.T("disable_info2"));
-        ImGui.TextColored(Yellow, "   " + Loc.T("freeze_warning"));
-        ImGui.Separator();
+        ImGui.Indent();
+        Wrapped(Grey, Loc.T("disable_info1"));
+        Wrapped(Grey, Loc.T("disable_info2"));
+        Wrapped(Yellow, Loc.T("freeze_warning"));
+        ImGui.Unindent();
+
+        Heading(Loc.T("section_glamourer"));
+        var save = config.SaveDesignToGlamourer;
+        if (ImGui.Checkbox(Loc.T("save_design"), ref save))
+        {
+            config.SaveDesignToGlamourer = save;
+            plugin.SaveConfiguration();
+        }
+
+        var canApply = config.SaveDesignToGlamourer && config.AutoInstall;
+        if (!canApply)
+            ImGui.BeginDisabled();
+        var apply = config.ApplyDesignAfterCreate;
+        if (ImGui.Checkbox(Loc.T("apply_design"), ref apply))
+        {
+            config.ApplyDesignAfterCreate = apply;
+            plugin.SaveConfiguration();
+        }
+
+        if (!canApply)
+            ImGui.EndDisabled();
+
+        ImGui.Indent();
+        Wrapped(Grey, Loc.T("apply_design_info"));
+        ImGui.Unindent();
     }
 
-    private void DrawPieces(Outfit o)
+    // ------------------------------------------------------------------ Onglet Diagnostic
+
+    private void DrawDiagnosticsTab()
     {
-        if (o.Pieces.Count == 0)
+        ImGui.Spacing();
+        if (scanner == null || outfit == null)
         {
-            ImGui.TextColored(Grey, Loc.T("no_pieces"));
+            Wrapped(Grey, Loc.T("hint_equip"));
             return;
         }
 
-        foreach (var piece in o.Pieces)
-        {
-            ImGui.PushID(piece.GetHashCode());
-            ImGui.TextUnformatted($"{Loc.Slot(piece.Slot.Name)} : {piece.ItemName} ({piece.Tag})");
-
-            if (piece.Conflicts.Count > 0)
-            {
-                var mods = string.Join(", ", piece.Conflicts.Select(c => c.ModName).Distinct());
-                ImGui.TextColored(Red, "   " + Loc.T("conflict_with", mods));
-                var ignore = piece.IgnoreConflict;
-                if (ImGui.Checkbox(Loc.T("ignore_conflict"), ref ignore))
-                    piece.IgnoreConflict = ignore;
-                if (!piece.IgnoreConflict)
-                    DrawReplacementPicker(o, piece);
-            }
-            else if (piece.SharedWith.Count > 0)
-            {
-                ImGui.TextColored(Grey, "   " + Loc.T("shared_with", string.Join(", ", piece.SharedWith)));
-            }
-
-            ImGui.PopID();
-        }
-
-        if (o.HairConflicts.Count > 0)
-        {
-            var mods = string.Join(", ", o.HairConflicts.Select(c => c.ModName).Distinct());
-            ImGui.PushTextWrapPos();
-            ImGui.TextColored(Red, Loc.T("hair_conflict", o.HairStyle, mods));
-            ImGui.PopTextWrapPos();
-        }
-    }
-
-    private void DrawSources(Outfit o)
-    {
-        var config = plugin.Configuration;
-        if (!config.AutoInstall || !config.DisableSourceMods)
-            return;
-
-        ImGui.Separator();
-        if (o.SourceMods.Count == 0)
-        {
-            ImGui.TextColored(Grey, Loc.T("no_sources"));
-            return;
-        }
-
-        ImGui.TextUnformatted(Loc.T("sources_title"));
-        foreach (var src in o.SourceMods)
-        {
-            ImGui.PushID(src.Directory);
-            var selected = src.Selected;
-            if (ImGui.Checkbox(src.Name, ref selected))
-                src.Selected = selected;
-            ImGui.SameLine();
-            if (src.OnlyOutfit)
-                ImGui.TextColored(Grey, Loc.T("source_only", src.UsedFiles));
-            else
-                ImGui.TextColored(Yellow, Loc.T("source_mixed", src.UsedFiles, src.TotalFiles));
-            ImGui.PopID();
-        }
-
-        ImGui.TextColored(Yellow, Loc.T("freeze_short"));
-    }
-
-    private static void DrawCredits(Outfit o)
-    {
-        var credits = PmpWriter.BuildCredits(o).Trim();
-        if (credits.Length == 0 || !ImGui.CollapsingHeader(Loc.T("credits_preview") + "###credits"))
-            return;
-        ImGui.TextWrapped(credits);
-    }
-
-    private void DrawDiagnostics(Outfit o)
-    {
-        if (scanner == null || !ImGui.CollapsingHeader(Loc.T("diagnostic") + "###diagnostic"))
-            return;
-
-        ImGui.TextWrapped(Loc.T("diag_folder", scanner.ScannedDirectory));
+        var o = outfit;
+        Wrapped(Grey, Loc.T("diag_folder", scanner.ScannedDirectory));
         ImGui.TextUnformatted(Loc.T("diag_mods", scanner.ModCount, scanner.Files.Count));
-        ImGui.TextUnformatted(Loc.T("diag_outfit_mods", scanner.OutfitMods.Count));
-        foreach (var name in scanner.OutfitMods.OrderBy(n => n).Take(30))
-            ImGui.TextColored(Grey, $"   {name}");
+        ImGui.TextUnformatted(Loc.T("files_summary",
+            o.InGroup(FileGroup.Tenue).Count(),
+            o.InGroup(FileGroup.Accessoires).Count(),
+            o.InGroup(FileGroup.Cheveux).Count(),
+            o.InGroup(FileGroup.Maquillage).Count(),
+            o.Meta.Count));
         ImGui.TextUnformatted(Loc.T("diag_files", o.DiagPieceFiles, o.DiagSameFiles, o.DiagDifferentFiles));
+
+        ImGui.Spacing();
+        ImGui.TextUnformatted(Loc.T("diag_outfit_mods", scanner.OutfitMods.Count));
+        foreach (var name in scanner.OutfitMods.OrderBy(n => n).Take(40))
+            ImGui.TextColored(Grey, $"   {name}");
 
         if (scanner.Errors.Count > 0)
         {
+            ImGui.Spacing();
             ImGui.TextColored(Red, Loc.T("diag_errors", scanner.Errors.Count));
             foreach (var err in scanner.Errors.Take(8))
                 ImGui.TextColored(Grey, $"   {err}");
         }
 
+        ImGui.Spacing();
         if (ImGui.Button(Loc.T("diag_copy")))
         {
             var text = $"Folder: {scanner.ScannedDirectory}\nMods: {scanner.ModCount}\nFiles: {scanner.Files.Count}\n"
@@ -286,39 +546,7 @@ public sealed class MainWindow : Window
         }
     }
 
-    private void DrawReplacementPicker(Outfit o, OutfitPiece piece)
-    {
-        if (!freeItems.TryGetValue(piece, out var list))
-        {
-            list = plugin.Extractor.FreeItems(o, piece.Slot, scanner!);
-            freeItems[piece] = list;
-        }
-
-        filters.TryGetValue(piece, out var filter);
-        filter ??= string.Empty;
-        ImGui.SetNextItemWidth(200);
-        if (ImGui.InputText(Loc.T("filter"), ref filter, 64))
-            filters[piece] = filter;
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(320);
-        var preview = piece.Replacement != null
-            ? $"{piece.Replacement.Name} ({Slots.Tag(piece.Slot.Kind, piece.Replacement.Set)})"
-            : Loc.T("replacement_placeholder");
-        if (ImGui.BeginCombo("##replacement", preview))
-        {
-            foreach (var item in list.Where(i => filter.Length == 0 || i.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).Take(300))
-            {
-                var label = $"{item.Name}  —  {Slots.Tag(piece.Slot.Kind, item.Set)} v{item.Variant}##{item.Id}";
-                if (ImGui.Selectable(label, piece.Replacement?.Id == item.Id))
-                    piece.Replacement = item;
-            }
-
-            ImGui.EndCombo();
-        }
-
-        ImGui.TextColored(Grey, "   " + Loc.T("free_count", list.Count));
-    }
+    // ------------------------------------------------------------------ Actions
 
     private void Analyze()
     {
@@ -358,22 +586,41 @@ public sealed class MainWindow : Window
             var modName = (config.ModPrefix + " " + outfitName).Trim();
             var pmp = PmpWriter.Write(outfit, modName, config.Author, config.OutputFolder);
 
+            // Design : toujours en fichier .txt et dans le presse-papier, et dans Glamourer si demandé.
             var design = outfit.Design.ToBase64();
             File.WriteAllText(Path.ChangeExtension(pmp, null) + "_Glamourer.txt", design);
             ImGui.SetClipboardText(design);
 
-            var msg = Loc.T("status_created", Path.GetFileName(pmp));
+            var msg = Loc.T("status_files_saved", Path.GetFileName(pmp));
+            var designId = Guid.Empty;
+            if (config.SaveDesignToGlamourer)
+            {
+                var (result, id) = plugin.Extractor.SaveDesign(design, modName);
+                if (result == "Success" && id != Guid.Empty)
+                {
+                    designId = id;
+                    msg += Loc.T("status_design_saved", modName);
+                }
+                else
+                {
+                    msg += Loc.T("status_design_failed", result);
+                }
+            }
+            else
+            {
+                msg += Loc.T("status_clipboard");
+            }
+
             if (config.AutoInstall)
             {
                 msg += Loc.T("status_install", plugin.Extractor.Install(pmp));
-                if (config.DisableSourceMods)
-                {
-                    pendingModName = modName;
-                    pendingSources = outfit.SourceMods.Where(m => m.Selected).ToList();
-                    pendingDeadline = DateTime.Now.AddSeconds(30);
-                    nextPoll = DateTime.Now;
-                    msg += Loc.T("status_activating");
-                }
+                pendingModName = modName;
+                pendingDisableSources = config.DisableSourceMods;
+                pendingSources = config.DisableSourceMods ? outfit.SourceMods.Where(m => m.Selected).ToList() : new List<SourceMod>();
+                pendingDesignId = config.ApplyDesignAfterCreate ? designId : Guid.Empty;
+                pendingDeadline = DateTime.Now.AddSeconds(30);
+                nextPoll = DateTime.Now;
+                msg += Loc.T("status_activating");
             }
 
             SetStatus(msg, false);
@@ -389,8 +636,8 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>
-    /// Penumbra installe le mod en arrière-plan : on attend qu'il apparaisse, puis on l'active
-    /// et on désactive les mods d'origine cochés. Abandon au bout de 30 secondes.
+    /// Penumbra installe le mod en arrière-plan : on attend qu'il apparaisse, puis on l'active,
+    /// on désactive les mods d'origine cochés et on applique le design. Abandon au bout de 30 secondes.
     /// </summary>
     private void PollPendingActivation()
     {
@@ -413,19 +660,27 @@ public sealed class MainWindow : Window
             }
 
             var results = new List<string> { Loc.T("status_enabled", pendingModName, plugin.Extractor.SetModEnabled(dir, true)) };
-            var disabled = 0;
-            foreach (var src in pendingSources)
+
+            if (pendingDisableSources)
             {
-                if (string.Equals(src.Directory, dir, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                var r = plugin.Extractor.SetModEnabled(src.Directory, false);
-                if (r is "Success" or "NothingChanged")
-                    disabled++;
-                else
-                    results.Add($"{src.Name} : {r}");
+                var disabled = 0;
+                foreach (var src in pendingSources)
+                {
+                    if (string.Equals(src.Directory, dir, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    var r = plugin.Extractor.SetModEnabled(src.Directory, false);
+                    if (r is "Success" or "NothingChanged")
+                        disabled++;
+                    else
+                        results.Add($"{src.Name} : {r}");
+                }
+
+                results.Add(Loc.T("status_disabled_count", disabled));
             }
 
-            results.Add(Loc.T("status_disabled_count", disabled));
+            if (pendingDesignId != Guid.Empty)
+                results.Add(Loc.T("status_design_applied", plugin.Extractor.ApplyDesign(pendingDesignId)));
+
             SetStatus(string.Join(" — ", results) + ".", false);
         }
         catch (Exception e)
@@ -435,6 +690,7 @@ public sealed class MainWindow : Window
         }
 
         pendingModName = null;
+        pendingDesignId = Guid.Empty;
     }
 
     private void SetStatus(string text, bool error)

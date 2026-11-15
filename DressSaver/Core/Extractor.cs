@@ -33,6 +33,8 @@ public sealed class Extractor
     private readonly TrySetMod trySetMod;
     private readonly GetModList getModList;
     private readonly Glamourer.Api.IpcSubscribers.GetStateBase64 getGlamourerState;
+    private readonly Glamourer.Api.IpcSubscribers.AddDesign addDesign;
+    private readonly Glamourer.Api.IpcSubscribers.ApplyDesign applyDesign;
 
     public Extractor(IDalamudPluginInterface pi, ItemCatalog items, IPluginLog log)
     {
@@ -47,11 +49,23 @@ public sealed class Extractor
         trySetMod = new TrySetMod(pi);
         getModList = new GetModList(pi);
         getGlamourerState = new Glamourer.Api.IpcSubscribers.GetStateBase64(pi);
+        addDesign = new Glamourer.Api.IpcSubscribers.AddDesign(pi);
+        applyDesign = new Glamourer.Api.IpcSubscribers.ApplyDesign(pi);
     }
 
     public string ModDirectory => getModDirectory.Invoke();
 
     public string Install(string pmpPath) => installMod.Invoke(pmpPath).ToString();
+
+    /// <summary>Enregistre un design dans la liste de Glamourer. Renvoie le code de résultat et l'identifiant créé.</summary>
+    public (string Result, Guid Id) SaveDesign(string designBase64, string name)
+    {
+        var ec = addDesign.Invoke(designBase64, name, out var id);
+        return (ec.ToString(), id);
+    }
+
+    /// <summary>Applique un design de Glamourer sur le personnage du joueur.</summary>
+    public string ApplyDesign(Guid designId) => applyDesign.Invoke(designId, 0).ToString();
 
     /// <summary>Dossier (identifiant Penumbra) d'un mod installé à partir de son nom affiché, null s'il n'est pas (encore) là.</summary>
     public string? FindModDirectory(string modName)

@@ -9,11 +9,11 @@ Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type
 ## Features
 
 - **One mod per outfit**: clothes and their metadata, plus optional **Accessories**, **Hairstyle** and **Makeup** groups you can toggle in Penumbra.
-- **Glamourer design** for each outfit (gear, dyes, hairstyle, makeup only), copied to your clipboard and saved next to the mod.
+- **Glamourer design** for each outfit (gear, dyes, hairstyle, makeup only), saved directly in Glamourer's design list, and optionally applied to your character right after creation. It's also copied to your clipboard and saved next to the mod.
 - **Automatic install** in Penumbra.
 - **Conflict detection**: compares each piece with your installed mods.
-  - Identical files are shown in grey, as they are harmless.
-  - Different files are shown in red, with a searchable list of **free items** (not touched by any of your mods or syncs) to move the piece onto. You can also choose to ignore the conflict.
+  - Identical files are marked as **Shared**: they are harmless.
+  - Different files are marked as **Conflict**, with a searchable list of **free items** (not touched by any of your mods or syncs) to move the piece onto. You can also choose to ignore the conflict.
 - **Credits**: the description of every created mod lists each piece with its original mod and modder (`Piece - Mod - Author`).
 - **Disable original mods** (optional): once the new mod is installed and enabled, the mods the outfit came from are disabled. **They are never deleted**, so you can turn them back on at any time.
 - **4 languages**: English, French, Spanish and German. By default, the plugin uses Dalamud's language.
