@@ -72,7 +72,7 @@ public static class MetaCodec
     {
         // 1 octet de version + "META0001"
         if (raw.Length < 9 || Encoding.ASCII.GetString(raw, 1, 8) != "META0001")
-            throw new InvalidDataException("Format de métadonnées Penumbra inconnu.");
+            throw new InvalidDataException("Unknown Penumbra metadata format.");
 
         using var br = new BinaryReader(new MemoryStream(raw, 9, raw.Length - 9));
 

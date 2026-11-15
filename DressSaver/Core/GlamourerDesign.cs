@@ -41,7 +41,7 @@ public sealed class GlamourerDesign
         }
 
         var json = JsonNode.Parse(Encoding.UTF8.GetString(output.ToArray())) as JsonObject
-                   ?? throw new InvalidDataException("Design Glamourer illisible.");
+                   ?? throw new InvalidDataException("Unreadable Glamourer design.");
         return new GlamourerDesign(json, ver);
     }
 

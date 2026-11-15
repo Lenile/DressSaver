@@ -29,6 +29,9 @@ public sealed class Extractor
     private readonly ResolvePlayerPath resolvePlayerPath;
     private readonly GetModDirectory getModDirectory;
     private readonly InstallMod installMod;
+    private readonly GetCollectionForObject getCollection;
+    private readonly TrySetMod trySetMod;
+    private readonly GetModList getModList;
     private readonly Glamourer.Api.IpcSubscribers.GetStateBase64 getGlamourerState;
 
     public Extractor(IDalamudPluginInterface pi, ItemCatalog items, IPluginLog log)
@@ -40,12 +43,71 @@ public sealed class Extractor
         resolvePlayerPath = new ResolvePlayerPath(pi);
         getModDirectory = new GetModDirectory(pi);
         installMod = new InstallMod(pi);
+        getCollection = new GetCollectionForObject(pi);
+        trySetMod = new TrySetMod(pi);
+        getModList = new GetModList(pi);
         getGlamourerState = new Glamourer.Api.IpcSubscribers.GetStateBase64(pi);
     }
 
     public string ModDirectory => getModDirectory.Invoke();
 
     public string Install(string pmpPath) => installMod.Invoke(pmpPath).ToString();
+
+    /// <summary>Dossier (identifiant Penumbra) d'un mod installé à partir de son nom affiché, null s'il n'est pas (encore) là.</summary>
+    public string? FindModDirectory(string modName)
+    {
+        foreach (var (dir, name) in getModList.Invoke())
+            if (string.Equals(name, modName, StringComparison.OrdinalIgnoreCase))
+                return dir;
+        return null;
+    }
+
+    /// <summary>Active ou désactive un mod dans la collection utilisée par le personnage. Ne supprime jamais rien.</summary>
+    public string SetModEnabled(string modDirectory, bool enabled)
+    {
+        var (valid, _, collection) = getCollection.Invoke(0);
+        if (!valid)
+            return Loc.T("err_no_character");
+        return trySetMod.Invoke(collection.Id, modDirectory, enabled).ToString();
+    }
+
+    /// <summary>Liste les mods installés qui fournissent des fichiers à la tenue.</summary>
+    public void FindSources(Outfit outfit, ModScanner scanner)
+    {
+        outfit.SourceMods.Clear();
+        var root = Normalize(scanner.ScannedDirectory).TrimEnd('/') + "/";
+        var used = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (gp, disk) in outfit.DiskPaths)
+        {
+            var d = Normalize(disk);
+            if (!d.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                continue; // fichier venant d'une synchro (cache), pas d'un mod installé
+            var rest = d[root.Length..];
+            var slash = rest.IndexOf('/');
+            if (slash <= 0)
+                continue;
+            var dir = rest[..slash];
+            if (!used.TryGetValue(dir, out var set))
+                used[dir] = set = new HashSet<string>();
+            set.Add(gp);
+        }
+
+        foreach (var (dir, files) in used)
+        {
+            var modFiles = scanner.Files.Where(f => string.Equals(Path.GetFileName(f.ModFolder), dir, StringComparison.OrdinalIgnoreCase)).ToList();
+            var source = new SourceMod
+            {
+                Directory = modFiles.Count > 0 ? Path.GetFileName(modFiles[0].ModFolder) : dir,
+                Name = modFiles.Count > 0 ? modFiles[0].ModName : dir,
+                UsedFiles = files.Count,
+                TotalFiles = modFiles.Select(f => f.GamePath).Distinct().Count(),
+            };
+            source.Selected = source.OnlyOutfit;
+            outfit.SourceMods.Add(source);
+        }
+
+        outfit.SourceMods.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
+    }
 
     /// <summary>Le chemin du jeu est-il remplacé pour le joueur (par un mod installé ou une synchro) ?</summary>
     public bool IsModdedForPlayer(string gamePath)
@@ -59,14 +121,14 @@ public sealed class Extractor
         // 1. Design Glamourer actuel
         var (ec, state) = getGlamourerState.Invoke(0);
         if (string.IsNullOrEmpty(state))
-            throw new InvalidOperationException($"Glamourer n'a pas renvoyé l'état du personnage ({ec}).");
+            throw new InvalidOperationException(Loc.T("err_glamourer", ec));
         var outfit = new Outfit { Design = GlamourerDesign.Parse(state) };
 
         // 2. Fichiers réellement chargés par Penumbra pour le joueur (objet 0)
         var trees = getResourcePaths.Invoke(0);
         var paths = trees.Length > 0 ? trees[0] : null;
         if (paths == null)
-            throw new InvalidOperationException("Penumbra n'a renvoyé aucun fichier pour ton personnage.");
+            throw new InvalidOperationException(Loc.T("err_penumbra"));
 
         var diskByGamePath = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (actual, gamePaths) in paths)
@@ -111,7 +173,7 @@ public sealed class Extractor
                 Slot = slot,
                 Set = set,
                 ItemId = itemId,
-                ItemName = items.Get(itemId)?.Name ?? $"{tag} ({slot.Label})",
+                ItemName = items.Get(itemId)?.Name ?? $"{tag} ({Loc.Slot(slot.Name)})",
             };
             pieceByKey[key] = piece;
             outfit.Pieces.Add(piece);
@@ -139,7 +201,10 @@ public sealed class Extractor
             }
 
             if (group != null)
+            {
                 outfit.Files[gp] = new OutfitFile { GamePath = gp, Data = File.ReadAllBytes(disk), Group = group.Value };
+                outfit.DiskPaths[gp] = disk;
+            }
         }
 
         // 5. Textures rangées ailleurs (ex. chara/nyaughty/...) : rattachées via les matériaux
@@ -153,6 +218,7 @@ public sealed class Extractor
                     if (outfit.Files.ContainsKey(c) || !diskByGamePath.TryGetValue(c, out var disk))
                         continue;
                     outfit.Files[c] = new OutfitFile { GamePath = c, Data = File.ReadAllBytes(disk), Group = mtrl.Group };
+                    outfit.DiskPaths[c] = disk;
                 }
             }
         }
@@ -189,7 +255,7 @@ public sealed class Extractor
             outfit.Meta.Add(entry);
         }
 
-        log.Information($"DressSaver : {outfit.Pieces.Count} pièces, {outfit.Files.Count} fichiers, {outfit.Meta.Count} métadonnées.");
+        log.Information($"DressSaver: {outfit.Pieces.Count} pieces, {outfit.Files.Count} files, {outfit.Meta.Count} metadata entries.");
         outfit.HairStyle = int.TryParse((outfit.Design.Root["Customize"]?["Hairstyle"]?["Value"])?.ToString(), out var h) ? h : 0;
         return outfit;
     }
@@ -198,12 +264,14 @@ public sealed class Extractor
     public void FindConflicts(Outfit outfit, ModScanner scanner)
     {
         var ours = scanner.Files.Where(f => f.IsDressSaver).ToList();
+        outfit.DiagPieceFiles = outfit.DiagSameFiles = outfit.DiagDifferentFiles = 0;
         foreach (var piece in outfit.Pieces)
         {
             piece.Conflicts.Clear();
             piece.SharedWith.Clear();
             var pieceFiles = PieceFiles(outfit, piece);
             var mine = outfit.Files.Values.Where(f => pieceFiles.Contains(f.GamePath)).ToList();
+            outfit.DiagPieceFiles += mine.Count;
             foreach (var file in mine)
             {
                 foreach (var other in ours.Where(o => o.GamePath == file.GamePath))
@@ -211,9 +279,15 @@ public sealed class Extractor
                     if (!File.Exists(other.DiskPath))
                         continue;
                     if (ModScanner.Hash(other.DiskPath) == ModScanner.Hash(file.Data))
+                    {
                         piece.SharedWith.Add(other.ModName);
+                        outfit.DiagSameFiles++;
+                    }
                     else
+                    {
                         piece.Conflicts.Add(new Conflict(other.ModName, file.GamePath));
+                        outfit.DiagDifferentFiles++;
+                    }
                 }
             }
 

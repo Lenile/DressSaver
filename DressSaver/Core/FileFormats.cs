@@ -53,7 +53,7 @@ public static class FileFormats
     public static byte[] ReplaceTag(byte[] data, string oldTag, string newTag)
     {
         if (oldTag.Length != newTag.Length)
-            throw new ArgumentException("Les identifiants doivent avoir la même longueur.");
+            throw new ArgumentException("Both tags must have the same length.");
 
         var result = (byte[])data.Clone();
         var oldBytes = Encoding.ASCII.GetBytes(oldTag);

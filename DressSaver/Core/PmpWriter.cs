@@ -35,23 +35,23 @@ public static class PmpWriter
         using var zip = new ZipArchive(stream, ZipArchiveMode.Create);
 
         var groupNames = new List<string>();
-        var description = "Tenue extraite avec DressSaver.";
+        var description = Loc.T("mod_description");
 
         WriteJson(zip, "meta.json", new JsonObject
         {
             ["FileVersion"] = 3,
             ["Name"] = modName,
-            ["Author"] = author,
+            ["Author"] = string.IsNullOrWhiteSpace(author) ? "DressSaver" : author,
             ["Description"] = description,
             ["Version"] = "1.0",
             ["Website"] = "",
-            ["ModTags"] = new JsonArray(ModScanner.Tag, "Tenue"),
+            ["ModTags"] = new JsonArray(ModScanner.Tag, "Tenue", "Outfit"),
         });
 
         WriteJson(zip, "default_mod.json", new JsonObject
         {
             ["Version"] = 0,
-            ["Files"] = WriteFiles(zip, outfit.InGroup(FileGroup.Tenue), "tenue"),
+            ["Files"] = WriteFiles(zip, outfit.InGroup(FileGroup.Tenue), "outfit"),
             ["FileSwaps"] = new JsonObject(),
             ["Manipulations"] = ToArray(tenueMeta),
         });
@@ -85,9 +85,9 @@ public static class PmpWriter
             index++;
         }
 
-        Group("Accessoires", "Collier, boucles d'oreilles, bracelets, bagues", FileGroup.Accessoires, "accessoires", accMeta);
-        Group("Coupe de cheveux", "Coiffure de la tenue", FileGroup.Cheveux, "cheveux", new List<JsonObject>());
-        Group("Maquillage", "Peinture faciale modée", FileGroup.Maquillage, "maquillage", new List<JsonObject>());
+        Group(Loc.T("accessories"), Loc.T("grp_acc_desc"), FileGroup.Accessoires, "accessories", accMeta);
+        Group(Loc.T("hair"), Loc.T("grp_hair_desc"), FileGroup.Cheveux, "hair", new List<JsonObject>());
+        Group(Loc.T("makeup"), Loc.T("grp_makeup_desc"), FileGroup.Maquillage, "makeup", new List<JsonObject>());
 
         return path;
     }

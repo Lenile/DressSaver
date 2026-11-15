@@ -4,8 +4,8 @@
     par la version actuelle de Dalamud.NET.Sdk (voir nuget.org/packages/Dalamud.NET.Sdk).
   -->
   <PropertyGroup>
-    <Version>0.1.1.0</Version>
-    <Description>Range les tenues de ton perso en mods Penumbra propres, avec leur design Glamourer.</Description>
+    <Version>0.2.0.0</Version>
+    <Description>Saves your character's current outfit as a clean Penumbra mod, with its Glamourer design.</Description>
     <PackageProjectUrl>https://github.com/</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IsPackable>false</IsPackable>

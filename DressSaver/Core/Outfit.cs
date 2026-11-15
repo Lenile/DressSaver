@@ -20,7 +20,26 @@ public sealed class OutfitFile
     public FileGroup Group { get; set; }
 }
 
-/// <summary>Un conflit : un autre mod DressSaver remplace le même fichier avec un contenu différent.</summary>
+/// <summary>Un mod installé qui fournit des fichiers à la tenue.</summary>
+public sealed class SourceMod
+{
+    public required string Directory { get; init; }
+    public required string Name { get; init; }
+
+    /// <summary>Nombre de fichiers de ce mod utilisés par la tenue.</summary>
+    public int UsedFiles { get; set; }
+
+    /// <summary>Nombre total de fichiers du mod (toutes options confondues).</summary>
+    public int TotalFiles { get; set; }
+
+    /// <summary>Le mod ne contient que des fichiers de la tenue.</summary>
+    public bool OnlyOutfit => TotalFiles > 0 && UsedFiles >= TotalFiles;
+
+    /// <summary>Cochée = à désactiver après création.</summary>
+    public bool Selected { get; set; }
+}
+
+/// <summary>Un conflit :un autre mod DressSaver remplace le même fichier avec un contenu différent.</summary>
 public sealed record Conflict(string ModName, string GamePath);
 
 /// <summary>Une pièce de la tenue : un objet du jeu remplacé sur un emplacement.</summary>
@@ -48,6 +67,9 @@ public sealed class OutfitPiece
 public sealed class Outfit
 {
     public Dictionary<string, OutfitFile> Files { get; } = new();
+
+    /// <summary>Emplacement sur le disque de chaque fichier lu (chemin de jeu → fichier du mod).</summary>
+    public Dictionary<string, string> DiskPaths { get; } = new();
     public List<OutfitPiece> Pieces { get; } = new();
     public List<JsonObject> Meta { get; } = new();
     public required GlamourerDesign Design { get; init; }
@@ -56,6 +78,14 @@ public sealed class Outfit
     public List<Conflict> HairConflicts { get; } = new();
 
     public int HairStyle { get; set; }
+
+    /// <summary>Mods installés d'où viennent les fichiers de la tenue.</summary>
+    public List<SourceMod> SourceMods { get; } = new();
+
+    /// <summary>Diagnostic de la comparaison avec les autres mods de tenue.</summary>
+    public int DiagPieceFiles { get; set; }
+    public int DiagSameFiles { get; set; }
+    public int DiagDifferentFiles { get; set; }
 
     public IEnumerable<OutfitFile> InGroup(FileGroup group) => Files.Values.Where(f => f.Group == group);
 

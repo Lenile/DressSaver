@@ -28,6 +28,9 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Loc.Current = string.IsNullOrEmpty(Configuration.Language)
+            ? Loc.Default(PluginInterface.UiLanguage)
+            : Configuration.Language;
         Items = new ItemCatalog(DataManager);
         Extractor = new Extractor(PluginInterface, Items, Log);
         Remapper = new Remapper(DataManager, Items);
@@ -37,7 +40,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Ouvre DressSaver pour extraire la tenue portée en mod Penumbra.",
+            HelpMessage = Loc.T("command_help"),
         });
 
         PluginInterface.UiBuilder.Draw += windowSystem.Draw;

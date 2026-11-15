@@ -22,14 +22,23 @@ public sealed class ModScanner
 
     public List<ModFile> Files { get; } = new();
 
+    /// <summary>Diagnostic : dossier lu, nombre de mods, mods de tenue reconnus, erreurs de lecture.</summary>
+    public string ScannedDirectory { get; private set; } = string.Empty;
+    public int ModCount { get; private set; }
+    public HashSet<string> OutfitMods { get; } = new();
+    public List<string> Errors { get; } = new();
+
     /// <summary>Modèles touchés par au moins un mod : clé "e0205" ou "a0029".</summary>
     public HashSet<string> TouchedSets { get; } = new();
 
     public static ModScanner Scan(string modDirectory)
     {
-        var scanner = new ModScanner();
+        var scanner = new ModScanner { ScannedDirectory = modDirectory ?? string.Empty };
         if (string.IsNullOrEmpty(modDirectory) || !Directory.Exists(modDirectory))
+        {
+            scanner.Errors.Add(Loc.T("err_mod_folder", modDirectory ?? string.Empty));
             return scanner;
+        }
 
         foreach (var folder in Directory.EnumerateDirectories(modDirectory))
         {
@@ -37,9 +46,10 @@ public sealed class ModScanner
             {
                 scanner.ScanMod(folder);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Un mod mal formé ne doit pas bloquer l'analyse.
+                // Un mod mal formé ne doit pas bloquer l'analyse, mais on le note.
+                scanner.Errors.Add($"{Path.GetFileName(folder)} : {e.Message}");
             }
         }
 
@@ -60,6 +70,9 @@ public sealed class ModScanner
                 if (string.Equals(t?.ToString(), Tag, StringComparison.OrdinalIgnoreCase)
                     || string.Equals(t?.ToString(), "Tenue", StringComparison.OrdinalIgnoreCase))
                     isOurs = true;
+        ModCount++;
+        if (isOurs)
+            OutfitMods.Add(name);
 
         var jsons = new List<string>();
         var defaultMod = Path.Combine(folder, "default_mod.json");
