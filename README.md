@@ -2,7 +2,7 @@
 
 Plugin Dalamud qui range les tenues de ton personnage en mods Penumbra propres.
 
-Tu portes une tenue en jeu, tu ouvres `/dresssaver`, tu cliques sur **Analyser** puis **Créer le mod** :
+Tu portes une tenue en jeu, tu ouvres `/drss` (ou `/dresssaver`), tu cliques sur **Analyser** puis **Créer le mod** :
 
 - un `.pmp` est créé avec la tenue, et deux options à cocher : **Accessoires** et **Coupe de cheveux** (plus **Maquillage** si une peinture faciale modée est portée) ;
 - le design Glamourer de la tenue (équipement, teintures, coiffure, maquillage) est copié dans le presse-papier et enregistré à côté du `.pmp` ;

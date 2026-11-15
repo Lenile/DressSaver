@@ -16,6 +16,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     private const string CommandName = "/dresssaver";
+    private const string ShortCommandName = "/drss";
 
     public Configuration Configuration { get; }
     public ItemCatalog Items { get; }
@@ -38,9 +39,13 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow = new MainWindow(this);
         windowSystem.AddWindow(mainWindow);
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(ShortCommandName, new CommandInfo(OnCommand)
         {
             HelpMessage = Loc.T("command_help"),
+        });
+        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        {
+            HelpMessage = Loc.T("command_help_alias"),
         });
 
         PluginInterface.UiBuilder.Draw += windowSystem.Draw;
@@ -59,5 +64,6 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         windowSystem.RemoveAllWindows();
         CommandManager.RemoveHandler(CommandName);
+        CommandManager.RemoveHandler(ShortCommandName);
     }
 }

@@ -279,6 +279,13 @@ public static class Loc
             "Abre DressSaver para guardar tu atuendo actual como mod de Penumbra.",
             "Öffnet DressSaver, um dein aktuelles Outfit als Penumbra-Mod zu speichern.",
         },
+        ["command_help_alias"] = new[]
+        {
+            "Même chose que /drss.",
+            "Same as /drss.",
+            "Igual que /drss.",
+            "Wie /drss.",
+        },
         ["mod_description"] = new[]
         {
             "Tenue enregistrée avec DressSaver.",
