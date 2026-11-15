@@ -9,7 +9,7 @@
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/Lenile/DressSaver",
     "Tags": ["penumbra", "glamourer", "mods", "outfits"],
-    "DalamudApiLevel": 13,
+    "DalamudApiLevel": 15,
     "LoadPriority": 0,
     "IsHide": false,
     "IsTestingExclusive": false,
