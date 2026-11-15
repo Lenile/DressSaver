@@ -57,7 +57,8 @@ public sealed class ModScanner
         var isOurs = false;
         if (meta?["ModTags"] is JsonArray tags)
             foreach (var t in tags)
-                if (string.Equals(t?.ToString(), Tag, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(t?.ToString(), Tag, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(t?.ToString(), "Tenue", StringComparison.OrdinalIgnoreCase))
                     isOurs = true;
 
         var jsons = new List<string>();
