@@ -3,7 +3,7 @@
     "Author": "Lenile",
     "Name": "DressSaver",
     "InternalName": "DressSaver",
-    "AssemblyVersion": "0.2.0.0",
+    "AssemblyVersion": "0.2.1.0",
     "Punchline": "Saves your character's current outfit as a clean Penumbra mod, with its Glamourer design.",
     "Description": "Saves the outfit your character is wearing (clothes, accessories, hairstyle, makeup) as a clean, well-organized Penumbra mod (.pmp), along with its Glamourer design. Detects conflicts with your other outfits and suggests free items to move pieces onto.\n\nCommand: /dresssaver",
     "ApplicableVersion": "any",
