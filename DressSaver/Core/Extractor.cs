@@ -35,6 +35,9 @@ public sealed class Extractor
     private readonly Glamourer.Api.IpcSubscribers.GetStateBase64 getGlamourerState;
     private readonly Glamourer.Api.IpcSubscribers.AddDesign addDesign;
     private readonly Glamourer.Api.IpcSubscribers.ApplyDesign applyDesign;
+    private readonly Glamourer.Api.IpcSubscribers.GetDesignList getDesignList;
+    private readonly Glamourer.Api.IpcSubscribers.DeleteDesign deleteDesign;
+    private readonly Penumbra.Api.IpcSubscribers.DeleteMod deleteMod;
 
     public Extractor(IDalamudPluginInterface pi, ItemCatalog items, IPluginLog log)
     {
@@ -51,6 +54,9 @@ public sealed class Extractor
         getGlamourerState = new Glamourer.Api.IpcSubscribers.GetStateBase64(pi);
         addDesign = new Glamourer.Api.IpcSubscribers.AddDesign(pi);
         applyDesign = new Glamourer.Api.IpcSubscribers.ApplyDesign(pi);
+        getDesignList = new Glamourer.Api.IpcSubscribers.GetDesignList(pi);
+        deleteDesign = new Glamourer.Api.IpcSubscribers.DeleteDesign(pi);
+        deleteMod = new Penumbra.Api.IpcSubscribers.DeleteMod(pi);
     }
 
     public string ModDirectory => getModDirectory.Invoke();
@@ -63,6 +69,16 @@ public sealed class Extractor
         var ec = addDesign.Invoke(designBase64, name, out var id);
         return (ec.ToString(), id);
     }
+
+    /// <summary>Supprime un mod de Penumbra. Utilisé uniquement pour remplacer une tenue créée par DressSaver.</summary>
+    public string RemoveMod(string modDirectory) => deleteMod.Invoke(modDirectory).ToString();
+
+    /// <summary>Designs Glamourer portant exactement ce nom.</summary>
+    public List<Guid> FindDesigns(string name)
+        => getDesignList.Invoke().Where(d => string.Equals(d.Value, name, StringComparison.OrdinalIgnoreCase)).Select(d => d.Key).ToList();
+
+    /// <summary>Supprime un design de Glamourer (remplacement lors d'une mise à jour de tenue).</summary>
+    public string DeleteDesign(Guid id) => deleteDesign.Invoke(id).ToString();
 
     /// <summary>Applique un design de Glamourer sur le personnage du joueur.</summary>
     public string ApplyDesign(Guid designId) => applyDesign.Invoke(designId, 0).ToString();
@@ -281,6 +297,14 @@ public sealed class Extractor
             }
         }
 
+        // 5b. Modèles encore au format d'avant Dawntrail
+        foreach (var piece in outfit.Pieces)
+            piece.OldModel = PieceFiles(outfit, piece)
+                .Where(p => p.EndsWith(".mdl") && outfit.Files.ContainsKey(p))
+                .Any(p => !FileFormats.IsDawntrailModel(outfit.Files[p].Data));
+        outfit.OldHairModel = outfit.InGroup(FileGroup.Cheveux)
+            .Any(f => f.GamePath.EndsWith(".mdl") && !FileFormats.IsDawntrailModel(f.Data));
+
         // 6. Métadonnées utiles à la tenue
         var gender = outfit.Design.PenumbraGender;
         foreach (var entry in MetaCodec.Decode(getMeta.Invoke()))
@@ -319,10 +343,17 @@ public sealed class Extractor
     }
 
     /// <summary>Compare la tenue aux mods déjà créés par DressSaver.</summary>
-    public void FindConflicts(Outfit outfit, ModScanner scanner, bool compareAllMods)
+    public void FindConflicts(Outfit outfit, ModScanner scanner, bool compareAllMods, bool ignoreSourceMods)
     {
-        var outfitMods = scanner.Files.Where(f => f.IsDressSaver).ToList();
-        var ours = compareAllMods ? scanner.Files : outfitMods;
+        // Les mods d'origine de la tenue (ceux qui fournissent ses fichiers) vont être remplacés par le
+        // nouveau mod : on ne les compte ni comme conflits ni comme partages, sauf si l'utilisateur le demande.
+        var excluded = ignoreSourceMods
+            ? outfit.SourceMods.Select(s => s.Directory).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool Keep(ModFile f) => !excluded.Contains(Path.GetFileName(f.ModFolder));
+
+        var outfitMods = scanner.Files.Where(f => f.IsDressSaver && Keep(f)).ToList();
+        var ours = compareAllMods ? scanner.Files.Where(Keep).ToList() : outfitMods;
         outfit.DiagPieceFiles = outfit.DiagSameFiles = outfit.DiagDifferentFiles = 0;
         foreach (var piece in outfit.Pieces)
         {

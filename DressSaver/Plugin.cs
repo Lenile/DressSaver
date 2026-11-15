@@ -48,7 +48,7 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = Loc.T("command_help_alias"),
         });
 
-        PluginInterface.UiBuilder.Draw += windowSystem.Draw;
+        PluginInterface.UiBuilder.Draw += OnDraw;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
     }
 
@@ -58,9 +58,16 @@ public sealed class Plugin : IDalamudPlugin
 
     private void ToggleMainUi() => mainWindow.Toggle();
 
+    /// <summary>Chaque image : on termine l'activation d'une tenue en cours (même fenêtre fermée), puis on dessine.</summary>
+    private void OnDraw()
+    {
+        mainWindow.Tick();
+        windowSystem.Draw();
+    }
+
     public void Dispose()
     {
-        PluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        PluginInterface.UiBuilder.Draw -= OnDraw;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         windowSystem.RemoveAllWindows();
         CommandManager.RemoveHandler(CommandName);

@@ -28,6 +28,12 @@ public sealed class ModScanner
     public int ModCount { get; private set; }
     public HashSet<string> OutfitMods { get; } = new();
 
+    /// <summary>Mods de tenue : nom du dossier → nom affiché.</summary>
+    public Dictionary<string, string> OutfitModFolders { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Tous les mods : nom affiché → nom du dossier (pour repérer les noms déjà pris).</summary>
+    public Dictionary<string, string> FoldersByName { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Auteur de chaque mod, par nom de dossier.</summary>
     public Dictionary<string, string> Authors { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string> Errors { get; } = new();
@@ -76,8 +82,12 @@ public sealed class ModScanner
                     || string.Equals(t?.ToString(), "Tenue", StringComparison.OrdinalIgnoreCase))
                     isOurs = true;
         ModCount++;
+        FoldersByName[name] = Path.GetFileName(folder);
         if (isOurs)
+        {
             OutfitMods.Add(name);
+            OutfitModFolders[Path.GetFileName(folder)] = name;
+        }
 
         // Les versions récentes de Penumbra regroupent tout dans meta.json (les anciens fichiers
         // deviennent des .bak) ; les anciennes utilisent default_mod.json et group_*.json.

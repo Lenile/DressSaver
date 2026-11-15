@@ -31,6 +31,9 @@ public class Configuration : IPluginConfiguration
     /// <summary>Conflits : comparer avec tous les mods installés (sinon seulement les tenues DressSaver).</summary>
     public bool CompareAllMods { get; set; } = true;
 
+    /// <summary>Les mods d'où vient la tenue ne comptent pas comme conflits (ils seront remplacés par le nouveau mod).</summary>
+    public bool IgnoreSourceModsInConflicts { get; set; } = true;
+
     /// <summary>Enregistre le design de la tenue directement dans la liste de Glamourer.</summary>
     public bool SaveDesignToGlamourer { get; set; } = true;
 

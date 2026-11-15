@@ -26,11 +26,11 @@ public sealed class MainWindow : Window
 
     private readonly Plugin plugin;
 
+    // Onglet Tenue
     private string outfitName = string.Empty;
     private bool includeAccessories = true;
     private bool includeHair = true;
     private bool includeMakeup = true;
-
     private Outfit? outfit;
     private ModScanner? scanner;
     private readonly Dictionary<OutfitPiece, List<GameItem>> freeItems = new();
@@ -38,8 +38,22 @@ public sealed class MainWindow : Window
     private string status = string.Empty;
     private bool statusIsError;
 
+    /// <summary>Nom de la tenue existante à remplacer (mode « mise à jour » lancé depuis Mes tenues).</summary>
+    private string? updateTarget;
+    private bool selectOutfitTab;
+
+    // Dépendances
+    private List<DependencyState> dependencies = new();
+    private bool DependenciesOk => dependencies.Count > 0 && dependencies.All(d => d.Level != DependencyLevel.Missing);
+
+    // Onglet Mes tenues
+    private ModScanner? wardrobe;
+    private string wardrobeFilter = string.Empty;
+    private string wardrobeStatus = string.Empty;
+    private bool wardrobeStatusIsError;
+
     // Activation du nouveau mod (puis désactivation des mods d'origine et application du design),
-    // une fois que Penumbra a fini l'installation.
+    // une fois que Penumbra a fini l'installation. Géré par Tick(), appelé à chaque image même fenêtre fermée.
     private string? pendingModName;
     private List<SourceMod> pendingSources = new();
     private bool pendingDisableSources;
@@ -50,32 +64,59 @@ public sealed class MainWindow : Window
     public MainWindow(Plugin plugin) : base("DressSaver##DressSaverMain")
     {
         this.plugin = plugin;
-        Size = new Vector2(640, 620);
+        Size = new Vector2(660, 640);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(520, 420),
+            MinimumSize = new Vector2(540, 440),
             MaximumSize = new Vector2(1600, 1600),
         };
+    }
+
+    public override void OnOpen()
+    {
+        CheckDependencies();
+        wardrobe = null; // relu à la prochaine ouverture de l'onglet
+    }
+
+    private void CheckDependencies()
+    {
+        try
+        {
+            dependencies = Dependencies.Check(Plugin.PluginInterface);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.Error(e, "DressSaver: dependency check failed");
+            dependencies = new List<DependencyState>();
+        }
     }
 
     // ------------------------------------------------------------------ Mise en page
 
     public override void Draw()
     {
-        PollPendingActivation();
-
         ImGui.TextColored(Accent, "DressSaver");
         ImGui.SameLine();
         ImGui.TextColored(Grey, Loc.T("subtitle"));
         ImGui.Spacing();
 
+        DrawDependencies();
+
         if (!ImGui.BeginTabBar("##dresssaver_tabs"))
             return;
 
-        if (ImGui.BeginTabItem(Loc.T("tab_outfit") + "###tab_outfit"))
+        var outfitFlags = selectOutfitTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
+        selectOutfitTab = false;
+        if (ImGui.BeginTabItem(Loc.T("tab_outfit") + "###tab_outfit", outfitFlags))
         {
             DrawOutfitTab();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem(Loc.T("tab_wardrobe") + "###tab_wardrobe"))
+        {
+            DrawWardrobeTab();
             ImGui.EndTabItem();
         }
 
@@ -122,6 +163,29 @@ public sealed class MainWindow : Window
         ImGui.PopStyleColor();
     }
 
+    private void DrawDependencies()
+    {
+        var problems = dependencies.Where(d => d.Level != DependencyLevel.Ok).ToList();
+        if (dependencies.Count > 0 && problems.Count == 0)
+            return;
+
+        var blocking = !DependenciesOk;
+        if (blocking)
+            Wrapped(Red, Loc.T("dep_blocking"));
+
+        foreach (var d in problems)
+        {
+            Icon(d.Level == DependencyLevel.Missing ? FontAwesomeIcon.TimesCircle : FontAwesomeIcon.ExclamationTriangle,
+                 d.Level == DependencyLevel.Missing ? Red : Yellow);
+            ImGui.SameLine();
+            Wrapped(d.Level == DependencyLevel.Missing ? Red : Yellow, $"{d.Name} : {d.Detail}");
+        }
+
+        if (ImGui.Button(Loc.T("dep_recheck") + "##recheck"))
+            CheckDependencies();
+        ImGui.Separator();
+    }
+
     // ------------------------------------------------------------------ Onglet Tenue
 
     private void DrawOutfitTab()
@@ -129,8 +193,25 @@ public sealed class MainWindow : Window
         ImGui.Spacing();
         var fullWidth = ImGui.GetContentRegionAvail().X;
 
-        ImGui.SetNextItemWidth(fullWidth);
-        ImGui.InputTextWithHint("##outfit_name", Loc.T("name_hint"), ref outfitName, 128);
+        if (updateTarget != null)
+        {
+            Icon(FontAwesomeIcon.SyncAlt, Blue);
+            ImGui.SameLine();
+            Wrapped(Blue, Loc.T("update_banner", updateTarget));
+            if (ImGui.SmallButton(Loc.T("update_cancel") + "##cancel_update"))
+            {
+                updateTarget = null;
+                outfit = null;
+                status = string.Empty;
+            }
+
+            ImGui.Spacing();
+        }
+        else
+        {
+            ImGui.SetNextItemWidth(fullWidth);
+            ImGui.InputTextWithHint("##outfit_name", Loc.T("name_hint"), ref outfitName, 128);
+        }
 
         ImGui.TextColored(Grey, Loc.T("include_label"));
         ImGui.SameLine();
@@ -141,8 +222,12 @@ public sealed class MainWindow : Window
         ImGui.Checkbox(Loc.T("makeup"), ref includeMakeup);
 
         ImGui.Spacing();
+        if (!DependenciesOk)
+            ImGui.BeginDisabled();
         if (ImGui.Button(Loc.T("analyze") + "##analyze", new Vector2(fullWidth, 30)))
             Analyze();
+        if (!DependenciesOk)
+            ImGui.EndDisabled();
 
         if (!string.IsNullOrEmpty(status))
         {
@@ -159,6 +244,15 @@ public sealed class MainWindow : Window
 
         Heading(Loc.T("pieces_title"));
         DrawPiecesTable(outfit);
+
+        if (outfit.Pieces.Any(p => p.OldModel) || outfit.OldHairModel)
+        {
+            ImGui.Spacing();
+            if (outfit.OldHairModel)
+                Wrapped(Yellow, Loc.T("old_model_hair"));
+            Wrapped(Yellow, Loc.T("old_model_banner"));
+        }
+
         DrawConflicts(outfit);
 
         if (outfit.HairConflicts.Count > 0)
@@ -186,12 +280,11 @@ public sealed class MainWindow : Window
         }
 
         const ImGuiTableFlags flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX;
-        if (!ImGui.BeginTable("##pieces", 4, flags))
+        if (!ImGui.BeginTable("##pieces", 3, flags))
             return;
 
         ImGui.TableSetupColumn(Loc.T("col_slot"), ImGuiTableColumnFlags.WidthStretch, 1.1f);
-        ImGui.TableSetupColumn(Loc.T("col_item"), ImGuiTableColumnFlags.WidthStretch, 2.4f);
-        ImGui.TableSetupColumn(Loc.T("col_model"), ImGuiTableColumnFlags.WidthStretch, 0.7f);
+        ImGui.TableSetupColumn(Loc.T("col_item"), ImGuiTableColumnFlags.WidthStretch, 2.6f);
         ImGui.TableSetupColumn(Loc.T("col_status"), ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableHeadersRow();
 
@@ -203,14 +296,17 @@ public sealed class MainWindow : Window
             ImGui.TextColored(Grey, Loc.Slot(piece.Slot.Name));
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(piece.ItemName);
-            if (piece.Replacement != null && !piece.IgnoreConflict && piece.Conflicts.Count > 0)
+            if (piece.OldModel)
             {
-                ImGui.TextColored(Yellow, "→ " + piece.Replacement.Name);
+                Icon(FontAwesomeIcon.History, Yellow);
+                Tooltip(Loc.T("old_model_tip"));
+                ImGui.SameLine();
             }
 
-            ImGui.TableNextColumn();
-            ImGui.TextColored(Grey, piece.Tag);
+            ImGui.TextUnformatted(piece.ItemName);
+            Tooltip(Loc.T("model_tip", piece.Tag));
+            if (piece.Replacement != null && !piece.IgnoreConflict && piece.Conflicts.Count > 0)
+                ImGui.TextColored(Yellow, "→ " + piece.Replacement.Name);
 
             ImGui.TableNextColumn();
             DrawPieceState(piece);
@@ -342,13 +438,14 @@ public sealed class MainWindow : Window
             return;
 
         Heading(Loc.T("sources_title"));
-        if (o.SourceMods.Count == 0)
+        var sources = o.SourceMods.Where(s => !IsReplacedMod(s.Directory)).ToList();
+        if (sources.Count == 0)
         {
             Wrapped(Grey, Loc.T("no_sources"));
             return;
         }
 
-        foreach (var src in o.SourceMods)
+        foreach (var src in sources)
         {
             ImGui.PushID(src.Directory);
             var selected = src.Selected;
@@ -368,30 +465,177 @@ public sealed class MainWindow : Window
         Wrapped(Yellow, Loc.T("freeze_short"));
     }
 
+    /// <summary>Nom final du mod : la tenue mise à jour garde son nom exact, sinon préfixe + nom saisi.</summary>
+    private string ModName => updateTarget ?? (plugin.Configuration.ModPrefix + " " + outfitName).Trim();
+
+    /// <summary>Dossier du mod existant portant ce nom, et s'il s'agit d'une tenue DressSaver.</summary>
+    private (string? Folder, bool IsOutfit) ExistingMod(string name)
+    {
+        if (scanner == null || !scanner.FoldersByName.TryGetValue(name, out var folder))
+            return (null, false);
+        return (folder, scanner.OutfitModFolders.ContainsKey(folder));
+    }
+
+    /// <summary>Ce dossier est-il le mod qui va être remplacé par la création en cours ?</summary>
+    private bool IsReplacedMod(string folder)
+    {
+        var (existing, isOutfit) = ExistingMod(ModName);
+        return isOutfit && string.Equals(existing, folder, StringComparison.OrdinalIgnoreCase);
+    }
+
     private void DrawCreateButton(Outfit o)
     {
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
-        var noName = string.IsNullOrWhiteSpace(outfitName);
-        var blocked = o.HasConflicts || noName;
+        var name = ModName;
+        var noName = string.IsNullOrWhiteSpace(updateTarget ?? outfitName);
+        var (existing, isOutfit) = noName ? ((string?)null, false) : ExistingMod(name);
+        var nameTaken = existing != null && !isOutfit;
+
+        if (existing != null && updateTarget == null)
+        {
+            Icon(isOutfit ? FontAwesomeIcon.ExclamationTriangle : FontAwesomeIcon.TimesCircle, isOutfit ? Yellow : Red);
+            ImGui.SameLine();
+            Wrapped(isOutfit ? Yellow : Red, isOutfit ? Loc.T("name_taken_ours", name) : Loc.T("name_taken_other", name));
+            ImGui.Spacing();
+        }
+
+        var blocked = o.HasConflicts || noName || nameTaken;
+        var label = updateTarget != null ? Loc.T("create_update", name)
+                  : existing != null && isOutfit ? Loc.T("create_replace", name)
+                  : Loc.T("create");
 
         if (blocked)
             ImGui.BeginDisabled();
         ImGui.PushStyleColor(ImGuiCol.Button, CreateButton);
         ImGui.PushStyleColor(ImGuiCol.ButtonHovered, CreateButtonHover);
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, CreateButtonActive);
-        if (ImGui.Button(Loc.T("create") + "##create", new Vector2(ImGui.GetContentRegionAvail().X, 36)))
+        if (ImGui.Button(label + "##create", new Vector2(ImGui.GetContentRegionAvail().X, 36)))
             Create();
         ImGui.PopStyleColor(3);
         if (blocked)
             ImGui.EndDisabled();
 
-        if (blocked)
-            ImGui.TextColored(Yellow, noName ? Loc.T("need_name") : Loc.T("need_replacement"));
+        if (noName)
+            ImGui.TextColored(Yellow, Loc.T("need_name"));
+        else if (nameTaken)
+            ImGui.TextColored(Yellow, Loc.T("need_other_name"));
+        else if (o.HasConflicts)
+            ImGui.TextColored(Yellow, Loc.T("need_replacement"));
         else
             ImGui.TextColored(Grey, Loc.T("ready"));
+    }
+
+    // ------------------------------------------------------------------ Onglet Mes tenues
+
+    private void DrawWardrobeTab()
+    {
+        ImGui.Spacing();
+        if (!DependenciesOk)
+        {
+            Wrapped(Grey, Loc.T("dep_blocking"));
+            return;
+        }
+
+        if (wardrobe == null)
+            RefreshWardrobe();
+
+        var outfits = wardrobe!.OutfitModFolders
+            .Where(kv => wardrobeFilter.Length == 0 || kv.Value.Contains(wardrobeFilter, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(kv => kv.Value, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.6f);
+        ImGui.InputTextWithHint("##wardrobe_search", Loc.T("wardrobe_search_hint"), ref wardrobeFilter, 64);
+        ImGui.SameLine();
+        if (ImGui.Button(Loc.T("wardrobe_refresh") + "##wardrobe_refresh"))
+            RefreshWardrobe();
+        ImGui.SameLine();
+        ImGui.TextColored(Grey, Loc.T("wardrobe_count", wardrobe.OutfitModFolders.Count));
+
+        if (!string.IsNullOrEmpty(wardrobeStatus))
+            Wrapped(wardrobeStatusIsError ? Red : Green, wardrobeStatus);
+
+        ImGui.Spacing();
+        if (wardrobe.OutfitModFolders.Count == 0)
+        {
+            Wrapped(Grey, Loc.T("wardrobe_empty"));
+            return;
+        }
+
+        const ImGuiTableFlags flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX;
+        if (!ImGui.BeginTable("##wardrobe", 2, flags))
+            return;
+
+        ImGui.TableSetupColumn(Loc.T("tab_outfit"), ImGuiTableColumnFlags.WidthStretch, 3f);
+        ImGui.TableSetupColumn("##actions", ImGuiTableColumnFlags.WidthStretch, 2f);
+        ImGui.TableHeadersRow();
+
+        foreach (var (folder, name) in outfits)
+        {
+            ImGui.PushID(folder);
+            ImGui.TableNextRow();
+
+            ImGui.TableNextColumn();
+            ImGui.AlignTextToFramePadding();
+            Icon(FontAwesomeIcon.Tshirt, Accent);
+            ImGui.SameLine();
+            ImGui.TextUnformatted(name);
+
+            ImGui.TableNextColumn();
+            if (ImGui.Button(Loc.T("wardrobe_wear") + "##wear"))
+                Wear(folder, name);
+            Tooltip(Loc.T("wardrobe_wear_tip"));
+            ImGui.SameLine();
+            if (ImGui.Button(Loc.T("wardrobe_update") + "##update"))
+                StartUpdate(name);
+            Tooltip(Loc.T("wardrobe_update_tip"));
+
+            ImGui.PopID();
+        }
+
+        ImGui.EndTable();
+    }
+
+    private void RefreshWardrobe()
+    {
+        try
+        {
+            wardrobe = ModScanner.Scan(plugin.Extractor.ModDirectory);
+        }
+        catch (Exception e)
+        {
+            wardrobe = new ModScanner();
+            wardrobeStatus = e.Message;
+            wardrobeStatusIsError = true;
+        }
+    }
+
+    private void Wear(string folder, string name)
+    {
+        try
+        {
+            var enabled = plugin.Extractor.SetModEnabled(folder, true);
+            var designs = plugin.Extractor.FindDesigns(name);
+            var design = designs.Count > 0 ? plugin.Extractor.ApplyDesign(designs[0]) : Loc.T("design_none");
+            wardrobeStatus = Loc.T("wardrobe_worn", name, enabled, design);
+            wardrobeStatusIsError = false;
+        }
+        catch (Exception e)
+        {
+            wardrobeStatus = e.Message;
+            wardrobeStatusIsError = true;
+            Plugin.Log.Error(e, "DressSaver: wear failed");
+        }
+    }
+
+    private void StartUpdate(string name)
+    {
+        updateTarget = name;
+        selectOutfitTab = true;
+        Analyze();
     }
 
     // ------------------------------------------------------------------ Onglet Réglages
@@ -447,6 +691,17 @@ public sealed class MainWindow : Window
             config.CompareAllMods = compareAll;
             plugin.SaveConfiguration();
         }
+
+        var ignoreSources = config.IgnoreSourceModsInConflicts;
+        if (ImGui.Checkbox(Loc.T("ignore_sources"), ref ignoreSources))
+        {
+            config.IgnoreSourceModsInConflicts = ignoreSources;
+            plugin.SaveConfiguration();
+        }
+
+        ImGui.Indent();
+        Wrapped(Grey, Loc.T("ignore_sources_info"));
+        ImGui.Unindent();
 
         var auto = config.AutoInstall;
         if (ImGui.Checkbox(Loc.T("auto_install"), ref auto))
@@ -504,6 +759,18 @@ public sealed class MainWindow : Window
     private void DrawDiagnosticsTab()
     {
         ImGui.Spacing();
+        foreach (var d in dependencies)
+        {
+            var color = d.Level switch
+            {
+                DependencyLevel.Ok => Green,
+                DependencyLevel.Outdated => Yellow,
+                _ => Red,
+            };
+            ImGui.TextColored(color, $"{d.Name} : {d.Detail}");
+        }
+
+        ImGui.Spacing();
         if (scanner == null || outfit == null)
         {
             Wrapped(Grey, Loc.T("hint_equip"));
@@ -537,7 +804,8 @@ public sealed class MainWindow : Window
         ImGui.Spacing();
         if (ImGui.Button(Loc.T("diag_copy")))
         {
-            var text = $"Folder: {scanner.ScannedDirectory}\nMods: {scanner.ModCount}\nFiles: {scanner.Files.Count}\n"
+            var deps = string.Join(" | ", dependencies.Select(d => $"{d.Name}: {d.Level} {d.Detail}"));
+            var text = $"Dependencies: {deps}\nFolder: {scanner.ScannedDirectory}\nMods: {scanner.ModCount}\nFiles: {scanner.Files.Count}\n"
                        + $"Outfit mods: {string.Join(", ", scanner.OutfitMods)}\n"
                        + $"Pieces: {o.DiagPieceFiles} / same {o.DiagSameFiles} / different {o.DiagDifferentFiles}\n"
                        + $"Errors: {string.Join(" | ", scanner.Errors.Take(20))}\n"
@@ -550,12 +818,20 @@ public sealed class MainWindow : Window
 
     private void Analyze()
     {
+        CheckDependencies();
+        if (!DependenciesOk)
+        {
+            SetStatus(Loc.T("dep_blocking"), true);
+            return;
+        }
+
         try
         {
             outfit = plugin.Extractor.Analyze(includeAccessories, includeHair, includeMakeup);
             scanner = ModScanner.Scan(plugin.Extractor.ModDirectory);
-            plugin.Extractor.FindConflicts(outfit, scanner, plugin.Configuration.CompareAllMods);
+            // Les sources d'abord : la recherche de conflits en a besoin pour les mettre de côté.
             plugin.Extractor.FindSources(outfit, scanner);
+            plugin.Extractor.FindConflicts(outfit, scanner, plugin.Configuration.CompareAllMods, plugin.Configuration.IgnoreSourceModsInConflicts);
             freeItems.Clear();
             filters.Clear();
             var conflicts = outfit.Pieces.Count(p => p.Conflicts.Count > 0);
@@ -577,13 +853,16 @@ public sealed class MainWindow : Window
 
         try
         {
+            var config = plugin.Configuration;
+            var modName = ModName;
+            var (existingFolder, existingIsOutfit) = ExistingMod(modName);
+            if (existingFolder != null && !existingIsOutfit)
+                return; // nom pris par un autre mod : le bouton est normalement désactivé
+
             foreach (var piece in outfit.Pieces.Where(p => p.Conflicts.Count > 0 && p.Replacement != null && !p.IgnoreConflict).ToList())
                 plugin.Remapper.Apply(outfit, piece, piece.Replacement!);
 
             outfit.Design.RestrictToOutfit(includeHair, includeMakeup);
-
-            var config = plugin.Configuration;
-            var modName = (config.ModPrefix + " " + outfitName).Trim();
             var pmp = PmpWriter.Write(outfit, modName, config.Author, config.OutputFolder);
 
             // Design : toujours en fichier .txt et dans le presse-papier, et dans Glamourer si demandé.
@@ -592,9 +871,18 @@ public sealed class MainWindow : Window
             ImGui.SetClipboardText(design);
 
             var msg = Loc.T("status_files_saved", Path.GetFileName(pmp));
+
+            // Remplacement d'une tenue DressSaver existante (même nom) : ancien mod et ancien design supprimés.
+            // Les fichiers de la tenue sont déjà en mémoire, la suppression ne les affecte pas.
+            if (existingFolder != null && existingIsOutfit && config.AutoInstall)
+                msg += Loc.T("status_replaced", plugin.Extractor.RemoveMod(existingFolder));
+
             var designId = Guid.Empty;
             if (config.SaveDesignToGlamourer)
             {
+                foreach (var old in plugin.Extractor.FindDesigns(modName))
+                    plugin.Extractor.DeleteDesign(old);
+
                 var (result, id) = plugin.Extractor.SaveDesign(design, modName);
                 if (result == "Success" && id != Guid.Empty)
                 {
@@ -616,7 +904,9 @@ public sealed class MainWindow : Window
                 msg += Loc.T("status_install", plugin.Extractor.Install(pmp));
                 pendingModName = modName;
                 pendingDisableSources = config.DisableSourceMods;
-                pendingSources = config.DisableSourceMods ? outfit.SourceMods.Where(m => m.Selected).ToList() : new List<SourceMod>();
+                pendingSources = config.DisableSourceMods
+                    ? outfit.SourceMods.Where(m => m.Selected && !string.Equals(m.Directory, existingFolder, StringComparison.OrdinalIgnoreCase)).ToList()
+                    : new List<SourceMod>();
                 pendingDesignId = config.ApplyDesignAfterCreate ? designId : Guid.Empty;
                 pendingDeadline = DateTime.Now.AddSeconds(30);
                 nextPoll = DateTime.Now;
@@ -627,6 +917,8 @@ public sealed class MainWindow : Window
 
             // L'analyse a été modifiée par les déplacements : on repart de zéro pour la tenue suivante.
             outfit = null;
+            updateTarget = null;
+            wardrobe = null;
         }
         catch (Exception e)
         {
@@ -636,10 +928,11 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>
+    /// Appelé à chaque image par le plugin, même quand la fenêtre est fermée.
     /// Penumbra installe le mod en arrière-plan : on attend qu'il apparaisse, puis on l'active,
     /// on désactive les mods d'origine cochés et on applique le design. Abandon au bout de 30 secondes.
     /// </summary>
-    private void PollPendingActivation()
+    public void Tick()
     {
         if (pendingModName == null || DateTime.Now < nextPoll)
             return;

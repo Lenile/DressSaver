@@ -60,6 +60,9 @@ public sealed class OutfitPiece
     /// <summary>Mods DressSaver qui partagent cet objet avec un contenu identique (sans gravité).</summary>
     public HashSet<string> SharedWith { get; } = new();
 
+    /// <summary>Un modèle de la pièce est encore au format d'avant Dawntrail (risque d'être invisible).</summary>
+    public bool OldModel { get; set; }
+
     /// <summary>L'utilisateur garde l'objet malgré le conflit (ex. conflit avec un vieux mod inutilisé).</summary>
     public bool IgnoreConflict { get; set; }
 
@@ -85,6 +88,9 @@ public sealed class Outfit
     public List<Conflict> HairConflicts { get; } = new();
 
     public int HairStyle { get; set; }
+
+    /// <summary>Le modèle de la coiffure est encore au format d'avant Dawntrail.</summary>
+    public bool OldHairModel { get; set; }
 
     /// <summary>Mods installés d'où viennent les fichiers de la tenue.</summary>
     public List<SourceMod> SourceMods { get; } = new();

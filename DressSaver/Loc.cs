@@ -73,6 +73,27 @@ public static class Loc
             "Kein anderer Mod verändert dieses Item.",
         },
         ["moved_to"] = new[] { "Sera déplacé sur : {0}", "Will be moved onto: {0}", "Se moverá a: {0}", "Wird verschoben auf: {0}" },
+        ["model_tip"] = new[]
+        {
+            "Objet du jeu remplacé : {0}",
+            "Game item replaced: {0}",
+            "Objeto del juego sustituido: {0}",
+            "Ersetztes Spiel-Item: {0}",
+        },
+        ["ignore_sources"] = new[]
+        {
+            "Ne pas compter les mods d'origine de la tenue comme conflits",
+            "Don't count the outfit's original mods as conflicts",
+            "No contar los mods de origen del atuendo como conflictos",
+            "Ursprüngliche Mods des Outfits nicht als Konflikte zählen",
+        },
+        ["ignore_sources_info"] = new[]
+        {
+            "Ce sont les mods d'où vient la tenue : le nouveau mod les remplace.",
+            "These are the mods the outfit comes from: the new mod replaces them.",
+            "Son los mods de los que proviene el atuendo: el nuevo mod los sustituye.",
+            "Das sind die Mods, aus denen das Outfit stammt: Der neue Mod ersetzt sie.",
+        },
         ["conflicts_title"] = new[] { "Conflits à résoudre", "Conflicts to solve", "Conflictos por resolver", "Zu lösende Konflikte" },
         ["picker_help"] = new[]
         {
@@ -137,6 +158,211 @@ public static class Loc
             " Design copied to clipboard.",
             " Diseño copiado al portapapeles.",
             " Design in die Zwischenablage kopiert.",
+        },
+
+        // --- 0.4 : dépendances, noms, modèles anciens, Mes tenues ---
+        ["dep_not_installed"] = new[]
+        {
+            "pas installé",
+            "not installed",
+            "no instalado",
+            "nicht installiert",
+        },
+        ["dep_not_loaded"] = new[]
+        {
+            "installé mais désactivé",
+            "installed but disabled",
+            "instalado pero desactivado",
+            "installiert, aber deaktiviert",
+        },
+        ["dep_not_ready"] = new[]
+        {
+            "ne répond pas (désactive-le puis réactive-le)",
+            "not responding (disable and re-enable it)",
+            "no responde (desactívalo y vuelve a activarlo)",
+            "reagiert nicht (deaktivieren und wieder aktivieren)",
+        },
+        ["dep_incompatible"] = new[]
+        {
+            "{0} : version incompatible, il faut l'API {1}. Mets-le à jour.",
+            "{0}: incompatible version, API {1} required. Please update it.",
+            "{0}: versión incompatible, se necesita la API {1}. Actualízalo.",
+            "{0}: inkompatible Version, API {1} erforderlich. Bitte aktualisieren.",
+        },
+        ["dep_outdated"] = new[]
+        {
+            "{0} : plus ancien que la version testée (API {1}). Pense à le mettre à jour.",
+            "{0}: older than the tested version (API {1}). Consider updating it.",
+            "{0}: más antiguo que la versión probada (API {1}). Considera actualizarlo.",
+            "{0}: älter als die getestete Version (API {1}). Bitte aktualisieren.",
+        },
+        ["dep_blocking"] = new[]
+        {
+            "DressSaver a besoin de Penumbra et Glamourer, installés, activés et à jour :",
+            "DressSaver needs Penumbra and Glamourer, installed, enabled and up to date:",
+            "DressSaver necesita Penumbra y Glamourer, instalados, activados y actualizados:",
+            "DressSaver benötigt Penumbra und Glamourer, installiert, aktiviert und aktuell:",
+        },
+        ["dep_recheck"] = new[]
+        {
+            "Vérifier à nouveau",
+            "Check again",
+            "Comprobar de nuevo",
+            "Erneut prüfen",
+        },
+        ["name_taken_ours"] = new[]
+        {
+            "Une tenue « {0} » existe déjà : elle sera remplacée par celle-ci (l'ancien mod DressSaver et son design Glamourer seront supprimés).",
+            "An outfit \"{0}\" already exists: it will be replaced by this one (the old DressSaver mod and its Glamourer design will be deleted).",
+            "Ya existe un atuendo «{0}»: se reemplazará por este (se eliminarán el antiguo mod de DressSaver y su diseño de Glamourer).",
+            "Ein Outfit „{0}“ existiert bereits: Es wird durch dieses ersetzt (der alte DressSaver-Mod und sein Glamourer-Design werden gelöscht).",
+        },
+        ["name_taken_other"] = new[]
+        {
+            "Le nom « {0} » est déjà utilisé par un autre mod, qui n'est pas une tenue DressSaver : choisis un autre nom.",
+            "The name \"{0}\" is already used by another mod that isn't a DressSaver outfit: pick another name.",
+            "El nombre «{0}» ya lo usa otro mod que no es un atuendo de DressSaver: elige otro nombre.",
+            "Der Name „{0}“ wird bereits von einem anderen Mod verwendet, der kein DressSaver-Outfit ist: Wähle einen anderen Namen.",
+        },
+        ["need_other_name"] = new[]
+        {
+            "Choisis un autre nom.",
+            "Pick another name.",
+            "Elige otro nombre.",
+            "Wähle einen anderen Namen.",
+        },
+        ["create_replace"] = new[]
+        {
+            "Remplacer la tenue « {0} »",
+            "Replace outfit \"{0}\"",
+            "Reemplazar el atuendo «{0}»",
+            "Outfit „{0}“ ersetzen",
+        },
+        ["old_model_tip"] = new[]
+        {
+            "Modèle d'avant Dawntrail : il risque d'être invisible.",
+            "Pre-Dawntrail model: it may be invisible.",
+            "Modelo anterior a Dawntrail: podría ser invisible.",
+            "Modell aus der Zeit vor Dawntrail: Es könnte unsichtbar sein.",
+        },
+        ["old_model_banner"] = new[]
+        {
+            "Certaines pièces utilisent un modèle d'avant Dawntrail (icône jaune) : avant de créer le mod, active la migration automatique des modèles à l'import dans les réglages de Penumbra, sinon elles risquent d'être invisibles.",
+            "Some pieces use a pre-Dawntrail model (yellow icon): before creating the mod, enable automatic model migration on import in Penumbra's settings, otherwise they may be invisible.",
+            "Algunas piezas usan un modelo anterior a Dawntrail (icono amarillo): antes de crear el mod, activa la migración automática de modelos al importar en los ajustes de Penumbra; si no, podrían ser invisibles.",
+            "Einige Teile verwenden ein Modell aus der Zeit vor Dawntrail (gelbes Symbol): Aktiviere vor dem Erstellen die automatische Modell-Migration beim Import in den Penumbra-Einstellungen, sonst könnten sie unsichtbar sein.",
+        },
+        ["old_model_hair"] = new[]
+        {
+            "La coiffure utilise un modèle d'avant Dawntrail.",
+            "The hairstyle uses a pre-Dawntrail model.",
+            "El peinado usa un modelo anterior a Dawntrail.",
+            "Die Frisur verwendet ein Modell aus der Zeit vor Dawntrail.",
+        },
+        ["tab_wardrobe"] = new[]
+        {
+            "Mes tenues",
+            "My outfits",
+            "Mis atuendos",
+            "Meine Outfits",
+        },
+        ["wardrobe_refresh"] = new[]
+        {
+            "Actualiser",
+            "Refresh",
+            "Actualizar",
+            "Aktualisieren",
+        },
+        ["wardrobe_empty"] = new[]
+        {
+            "Aucune tenue pour l'instant. Crée ta première tenue dans l'onglet « Tenue ».",
+            "No outfits yet. Create your first outfit in the \"Outfit\" tab.",
+            "Todavía no hay atuendos. Crea el primero en la pestaña «Atuendo».",
+            "Noch keine Outfits. Erstelle dein erstes Outfit im Tab „Outfit“.",
+        },
+        ["wardrobe_count"] = new[]
+        {
+            "{0} tenue(s)",
+            "{0} outfit(s)",
+            "{0} atuendo(s)",
+            "{0} Outfit(s)",
+        },
+        ["wardrobe_search_hint"] = new[]
+        {
+            "Rechercher une tenue…",
+            "Search an outfit…",
+            "Buscar un atuendo…",
+            "Outfit suchen…",
+        },
+        ["wardrobe_wear"] = new[]
+        {
+            "Porter",
+            "Wear",
+            "Poner",
+            "Tragen",
+        },
+        ["wardrobe_wear_tip"] = new[]
+        {
+            "Active le mod dans Penumbra et applique son design Glamourer.",
+            "Enables the mod in Penumbra and applies its Glamourer design.",
+            "Activa el mod en Penumbra y aplica su diseño de Glamourer.",
+            "Aktiviert den Mod in Penumbra und wendet sein Glamourer-Design an.",
+        },
+        ["wardrobe_update"] = new[]
+        {
+            "Mettre à jour",
+            "Update",
+            "Actualizar",
+            "Aktualisieren",
+        },
+        ["wardrobe_update_tip"] = new[]
+        {
+            "Remplace cette tenue par celle que tu portes actuellement.",
+            "Replaces this outfit with the one you're currently wearing.",
+            "Reemplaza este atuendo por el que llevas ahora.",
+            "Ersetzt dieses Outfit durch das, das du gerade trägst.",
+        },
+        ["wardrobe_worn"] = new[]
+        {
+            "« {0} » : mod activé ({1}), design {2}.",
+            "\"{0}\": mod enabled ({1}), design {2}.",
+            "«{0}»: mod activado ({1}), diseño {2}.",
+            "„{0}“: Mod aktiviert ({1}), Design {2}.",
+        },
+        ["design_none"] = new[]
+        {
+            "introuvable dans Glamourer",
+            "not found in Glamourer",
+            "no encontrado en Glamourer",
+            "nicht in Glamourer gefunden",
+        },
+        ["update_banner"] = new[]
+        {
+            "Mise à jour de « {0} » : la tenue que tu portes va remplacer l'ancienne version.",
+            "Updating \"{0}\": the outfit you're wearing will replace the old version.",
+            "Actualizando «{0}»: el atuendo que llevas reemplazará la versión anterior.",
+            "„{0}“ wird aktualisiert: Das Outfit, das du trägst, ersetzt die alte Version.",
+        },
+        ["update_cancel"] = new[]
+        {
+            "Annuler la mise à jour",
+            "Cancel update",
+            "Cancelar la actualización",
+            "Aktualisierung abbrechen",
+        },
+        ["create_update"] = new[]
+        {
+            "Mettre à jour « {0} »",
+            "Update \"{0}\"",
+            "Actualizar «{0}»",
+            "„{0}“ aktualisieren",
+        },
+        ["status_replaced"] = new[]
+        {
+            " Ancienne version supprimée ({0}).",
+            " Old version deleted ({0}).",
+            " Versión anterior eliminada ({0}).",
+            " Alte Version gelöscht ({0}).",
         },
 
         // --- Réglages ---

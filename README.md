@@ -1,5 +1,7 @@
 # DressSaver
 
+<img src="images/icon.png" width="128" align="right" alt="DressSaver icon">
+
 A Dalamud plugin for FINAL FANTASY XIV that saves the outfit your character is currently wearing as a clean, well-organized **Penumbra mod**, together with its **Glamourer design**.
 
 Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type `/drss`, click **Analyze**, then **Create mod**. You get one tidy mod per outfit.
@@ -16,6 +18,12 @@ Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type
   - Different files are marked as **Conflict**, with a searchable list of **free items** (not touched by any of your mods or syncs) to move the piece onto. You can also choose to ignore the conflict.
 - **Credits**: the description of every created mod lists each piece with its original mod and modder (`Piece - Mod - Author`).
 - **Disable original mods** (optional): once the new mod is installed and enabled, the mods the outfit came from are disabled. **They are never deleted**, so you can turn them back on at any time.
+- **My outfits** tab: lists every outfit made with DressSaver.
+  - **Wear** enables the outfit's mod and applies its Glamourer design in one click.
+  - **Update** replaces a saved outfit with what you're wearing now (same name, same place in Penumbra and Glamourer).
+- **Name check**: warns you if an outfit with the same name already exists, and offers to replace it. A mod that wasn't made by DressSaver is never replaced.
+- **Pre-Dawntrail warning**: pieces (and hairstyles) still using the old model format are flagged, because they may show up invisible or broken in game.
+- **Dependency check**: makes sure Penumbra and Glamourer are installed, enabled and up to date before doing anything.
 - **4 languages**: English, French, Spanish and German. By default, the plugin uses Dalamud's language.
 - **Diagnostics** panel to help troubleshoot.
 
@@ -44,12 +52,15 @@ DressSaver only reads what **your own character** is wearing, using the mods **y
 4. Click **Analyze current outfit** and check the pieces, conflicts and credits.
 5. Click **Create mod**.
 
+To update a saved outfit later: put it on, change what you want, open the **My outfits** tab and click **Update**.
+
 > **Note:** if "Automatically disable the original mods" is enabled, your game may freeze for a few seconds while Penumbra applies the changes. Just wait!
 
 ## Good to know
 
 - Nude body pieces (Bibo+/TBSE body slots `e0000` and `e0279`), face, skin and tail are **never** included: they belong in your body mod.
 - A hairstyle can't be moved to another item. If two outfits use different files for the same hairstyle, DressSaver warns you.
+- Updating or replacing an outfit deletes **only the old DressSaver mod and its design**. Your original mods are never deleted.
 - When a piece is moved to a free item, DressSaver copies its settings (hidden body parts, material variant) and forces the right model for your race. Check the result in game the first time.
 
 ---
