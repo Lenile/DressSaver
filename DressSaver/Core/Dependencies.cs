@@ -23,7 +23,7 @@ public static class Dependencies
 {
     // Versions d'API avec lesquelles DressSaver a été écrit et testé.
     private const int PenumbraBreaking = 5;
-    private const int PenumbraFeature = 20;
+    private const int PenumbraFeature = 19; // 5.19 : version testée en jeu (Penumbra 1.7.2.1)
     private const int GlamourerMajor = 1;
     private const int GlamourerMinor = 8;
 

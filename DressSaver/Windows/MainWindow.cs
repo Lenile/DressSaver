@@ -572,6 +572,10 @@ public sealed partial class MainWindow : Window
 
         DrawConflictScan();
 
+        // « Appliquer les remplacements » vide la liste pour la relire avec les tenues réinstallées.
+        if (wardrobe == null)
+            return;
+
         ImGui.Spacing();
         if (wardrobe.OutfitModFolders.Count == 0)
         {
