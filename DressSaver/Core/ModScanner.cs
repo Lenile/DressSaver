@@ -21,6 +21,7 @@ public sealed class ModScanner
     private static readonly Regex SetRegex = new(@"^chara/(equipment|accessory)/([ea])(\d{4})/", RegexOptions.Compiled);
 
     public List<ModFile> Files { get; } = new();
+    private readonly HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Diagnostic : dossier lu, nombre de mods, mods de tenue reconnus, erreurs de lecture.</summary>
     public string ScannedDirectory { get; private set; } = string.Empty;
@@ -74,6 +75,12 @@ public sealed class ModScanner
         if (isOurs)
             OutfitMods.Add(name);
 
+        // Les versions récentes de Penumbra regroupent tout dans meta.json (les anciens fichiers
+        // deviennent des .bak) ; les anciennes utilisent default_mod.json et group_*.json.
+        // On cherche donc tous les objets « Files » où qu'ils soient, dans tous ces fichiers.
+        if (meta != null)
+            CollectFiles(meta, name, folder, isOurs);
+
         var jsons = new List<string>();
         var defaultMod = Path.Combine(folder, "default_mod.json");
         if (File.Exists(defaultMod))
@@ -81,18 +88,32 @@ public sealed class ModScanner
         jsons.AddRange(Directory.EnumerateFiles(folder, "group_*.json"));
 
         foreach (var json in jsons)
+            if (JsonNode.Parse(File.ReadAllText(json)) is JsonNode node)
+                CollectFiles(node, name, folder, isOurs);
+    }
+
+    /// <summary>Parcourt tout le JSON et ajoute chaque table « Files » (chemin de jeu → fichier du mod).</summary>
+    private void CollectFiles(JsonNode node, string modName, string folder, bool isOurs)
+    {
+        switch (node)
         {
-            var node = JsonNode.Parse(File.ReadAllText(json)) as JsonObject;
-            if (node == null)
-                continue;
+            case JsonObject obj:
+                foreach (var (key, value) in obj)
+                {
+                    if (value == null)
+                        continue;
+                    if (key == "Files" && value is JsonObject files)
+                        AddFiles(modName, folder, files, isOurs);
+                    else
+                        CollectFiles(value, modName, folder, isOurs);
+                }
 
-            if (node["Files"] is JsonObject files)
-                AddFiles(name, folder, files, isOurs);
-
-            if (node["Options"] is JsonArray options)
-                foreach (var opt in options)
-                    if (opt?["Files"] is JsonObject optFiles)
-                        AddFiles(name, folder, optFiles, isOurs);
+                break;
+            case JsonArray arr:
+                foreach (var item in arr)
+                    if (item != null)
+                        CollectFiles(item, modName, folder, isOurs);
+                break;
         }
     }
 
@@ -104,6 +125,8 @@ public sealed class ModScanner
                 continue;
             var gp = gamePath.Replace('\\', '/').ToLowerInvariant();
             var disk = Path.Combine(folder, relative.ToString().Replace('/', Path.DirectorySeparatorChar));
+            if (!seen.Add(folder + "|" + gp + "|" + disk))
+                continue; // déjà vu (même fichier présent dans l'ancien et le nouveau format)
             Files.Add(new ModFile(modName, folder, gp, disk, isOurs));
 
             var m = SetRegex.Match(gp);
