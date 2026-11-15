@@ -1,0 +1,53 @@
+name: Compiler et publier
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Télécharger Dalamud
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          $dest = "$env:AppData\XIVLauncher\addon\Hooks\dev"
+          Expand-Archive -Force latest.zip $dest
+          "DALAMUD_HOME=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Compiler
+        run: dotnet build -c Release DressSaver/DressSaver.csproj
+
+      - name: Trouver le paquet du plugin
+        id: pkg
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem -Recurse -Filter latest.zip -Path DressSaver/bin | Select-Object -First 1
+          if (-not $zip) { throw "latest.zip introuvable : vérifie le log de compilation." }
+          "path=$($zip.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Garder le paquet comme artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DressSaver
+          path: ${{ steps.pkg.outputs.path }}
+
+      - name: Publier une release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: DressSaver (build ${{ github.run_number }})
+          make_latest: true
+          files: ${{ steps.pkg.outputs.path }}
