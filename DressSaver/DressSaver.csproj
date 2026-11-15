@@ -1,4 +1,4 @@
-<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <!--
     Si GitHub Actions échoue avec une erreur de version de SDK, remplacez 13.0.0
     par la version actuelle de Dalamud.NET.Sdk (voir nuget.org/packages/Dalamud.NET.Sdk).
