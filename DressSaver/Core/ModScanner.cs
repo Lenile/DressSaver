@@ -27,6 +27,9 @@ public sealed class ModScanner
     public string ScannedDirectory { get; private set; } = string.Empty;
     public int ModCount { get; private set; }
     public HashSet<string> OutfitMods { get; } = new();
+
+    /// <summary>Auteur de chaque mod, par nom de dossier.</summary>
+    public Dictionary<string, string> Authors { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string> Errors { get; } = new();
 
     /// <summary>Modèles touchés par au moins un mod : clé "e0205" ou "a0029".</summary>
@@ -65,6 +68,7 @@ public sealed class ModScanner
 
         var meta = JsonNode.Parse(File.ReadAllText(metaPath)) as JsonObject;
         var name = meta?["Name"]?.ToString() ?? Path.GetFileName(folder);
+        Authors[Path.GetFileName(folder)] = meta?["Author"]?.ToString() ?? string.Empty;
         var isOurs = false;
         if (meta?["ModTags"] is JsonArray tags)
             foreach (var t in tags)

@@ -1,49 +1,69 @@
 # DressSaver
 
-Plugin Dalamud qui range les tenues de ton personnage en mods Penumbra propres.
+A Dalamud plugin for FINAL FANTASY XIV that saves the outfit your character is currently wearing as a clean, well-organized **Penumbra mod**, together with its **Glamourer design**.
 
-Tu portes une tenue en jeu, tu ouvres `/drss` (ou `/dresssaver`), tu cliques sur **Analyser** puis **Créer le mod** :
-
-- un `.pmp` est créé avec la tenue, et deux options à cocher : **Accessoires** et **Coupe de cheveux** (plus **Maquillage** si une peinture faciale modée est portée) ;
-- le design Glamourer de la tenue (équipement, teintures, coiffure, maquillage) est copié dans le presse-papier et enregistré à côté du `.pmp` ;
-- le mod est installé directement dans Penumbra ;
-- les conflits avec tes autres tenues créées par DressSaver sont détectés, et pour chacun le plugin te propose la **liste des objets libres** (que ni tes mods ni la synchro ne modifient) pour y déplacer la pièce.
-
-Le plugin ne lit que ce que porte **ton** personnage, avec les mods que **tu** as installés. Il n'utilise ni les fichiers MCDF ni l'apparence des autres joueurs.
-
-Prérequis en jeu : **Penumbra** et **Glamourer** installés et à jour.
+Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type `/drss`, click **Analyze**, then **Create mod**. You get one tidy mod per outfit.
 
 ---
 
-## Mise en ligne sur GitHub (une seule fois)
+## Features
 
-1. Crée un compte sur [github.com](https://github.com) si tu n'en as pas.
-2. Crée un dépôt **public** nommé `DressSaver` (bouton **New repository**), sans README.
-3. Dans le dépôt, clique sur **uploading an existing file**, puis glisse-dépose **tout le contenu** de ce dossier (y compris le dossier caché `.github`). Valide avec **Commit changes**.
-   - Si le dossier `.github` ne passe pas par glisser-déposer, crée le fichier à la main : **Add file → Create new file**, nom `.github/workflows/build.yml`, et colle le contenu du fichier.
-4. Ouvre `repo.json` sur GitHub (icône crayon) et remplace les 4 `TON_PSEUDO` par ton pseudo GitHub. Valide.
-5. Va dans l'onglet **Actions** : la compilation se lance toute seule. Quand elle est verte, une **Release** contenant `latest.zip` apparaît dans la page du dépôt.
+- **One mod per outfit**: clothes and their metadata, plus optional **Accessories**, **Hairstyle** and **Makeup** groups you can toggle in Penumbra.
+- **Glamourer design** for each outfit (gear, dyes, hairstyle, makeup only), copied to your clipboard and saved next to the mod.
+- **Automatic install** in Penumbra.
+- **Conflict detection**: compares each piece with your installed mods.
+  - Identical files are shown in grey, as they are harmless.
+  - Different files are shown in red, with a searchable list of **free items** (not touched by any of your mods or syncs) to move the piece onto. You can also choose to ignore the conflict.
+- **Credits**: the description of every created mod lists each piece with its original mod and modder (`Piece - Mod - Author`).
+- **Disable original mods** (optional): once the new mod is installed and enabled, the mods the outfit came from are disabled. **They are never deleted**, so you can turn them back on at any time.
+- **4 languages**: English, French, Spanish and German. By default, the plugin uses Dalamud's language.
+- **Diagnostics** panel to help troubleshoot.
 
-Si la compilation est rouge, ouvre-la, copie le message d'erreur et envoie-le à Claude.
+DressSaver only reads what **your own character** is wearing, using the mods **you** have installed. It never touches other players' appearances or MCDF files.
 
-## Installation dans le jeu
+---
 
-1. En jeu : `/xlsettings` → onglet **Expérimental**.
-2. Dans **Dépôts de plugins personnalisés**, colle :
-   `https://raw.githubusercontent.com/TON_PSEUDO/DressSaver/main/repo.json`
-3. Clique sur le **+**, coche la case, puis **Enregistrer**.
-4. `/xlplugins` → cherche **DressSaver** → **Installer**.
+## Requirements
 
-## Mettre à jour
+- [Penumbra](https://github.com/xivdev/Penumbra)
+- [Glamourer](https://github.com/Ottermandias/Glamourer)
 
-À chaque modification du code :
+## Installation
 
-1. augmente `Version` dans `DressSaver/DressSaver.csproj` (ex. `0.1.1.0`) ;
-2. mets la même valeur dans `AssemblyVersion` de `repo.json` ;
-3. envoie les fichiers sur GitHub : la compilation et la release se font toutes seules, et Dalamud proposera la mise à jour.
+1. In game, type `/xlsettings` and open the **Experimental** tab.
+2. Under **Custom Plugin Repositories**, paste:
+   `https://raw.githubusercontent.com/Lenile/DressSaver/main/repo.json`
+3. Click **+**, tick the **Enabled** box, then **Save and Close**.
+4. Type `/xlplugins`, search for **DressSaver** and install it.
 
-## Bon à savoir
+## Usage
 
-- Le corps nu Bibo+/TBSE (objets `e0000` et `e0279`), le visage, la peau et la queue ne sont **jamais** inclus : ils restent dans ton mod physique.
-- Une coiffure ne peut pas être déplacée sur un autre objet : en cas de conflit de coiffure, le plugin te prévient seulement.
-- Quand une pièce est déplacée, le plugin recopie ses réglages (parties du corps masquées, variante de matériau) et force le bon modèle pour ta race. Vérifie quand même le rendu en jeu la première fois.
+1. Put the outfit on your character (with Glamourer and your mods enabled).
+2. Type `/drss` (or `/dresssaver`).
+3. Give the outfit a name and choose what to include (accessories, hairstyle, makeup).
+4. Click **Analyze current outfit** and check the pieces, conflicts and credits.
+5. Click **Create mod**.
+
+> **Note:** if "Automatically disable the original mods" is enabled, your game may freeze for a few seconds while Penumbra applies the changes. Just wait!
+
+## Good to know
+
+- Nude body pieces (Bibo+/TBSE body slots `e0000` and `e0279`), face, skin and tail are **never** included: they belong in your body mod.
+- A hairstyle can't be moved to another item. If two outfits use different files for the same hairstyle, DressSaver warns you.
+- When a piece is moved to a free item, DressSaver copies its settings (hidden body parts, material variant) and forces the right model for your race. Check the result in game the first time.
+
+---
+
+## Building from source
+
+The plugin is built automatically by GitHub Actions on every push to `main` (see `.github/workflows/build.yml`), and published as a release.
+
+To release a new version:
+
+1. Increase `Version` in `DressSaver/DressSaver.csproj` (for example `0.2.5.0`).
+2. Set the same value for `AssemblyVersion` in `repo.json`.
+3. Push your changes. Dalamud will offer the update once the build is done (allow a few minutes for GitHub's cache).
+
+## Credits
+
+Made by Lénile.

@@ -25,6 +25,10 @@ public sealed class SourceMod
 {
     public required string Directory { get; init; }
     public required string Name { get; init; }
+    public string Author { get; init; } = string.Empty;
+
+    /// <summary>Pièces de la tenue fournies par ce mod (noms d'objets, coiffure…).</summary>
+    public List<string> Pieces { get; } = new();
 
     /// <summary>Nombre de fichiers de ce mod utilisés par la tenue.</summary>
     public int UsedFiles { get; set; }
@@ -56,6 +60,9 @@ public sealed class OutfitPiece
     /// <summary>Mods DressSaver qui partagent cet objet avec un contenu identique (sans gravité).</summary>
     public HashSet<string> SharedWith { get; } = new();
 
+    /// <summary>L'utilisateur garde l'objet malgré le conflit (ex. conflit avec un vieux mod inutilisé).</summary>
+    public bool IgnoreConflict { get; set; }
+
     /// <summary>Objet de remplacement choisi par l'utilisateur pour résoudre un conflit.</summary>
     public GameItem? Replacement { get; set; }
 
@@ -82,6 +89,9 @@ public sealed class Outfit
     /// <summary>Mods installés d'où viennent les fichiers de la tenue.</summary>
     public List<SourceMod> SourceMods { get; } = new();
 
+    /// <summary>Pièces dont l'origine n'est pas un mod installé (synchro, jeu de base).</summary>
+    public List<string> UnknownSourcePieces { get; } = new();
+
     /// <summary>Diagnostic de la comparaison avec les autres mods de tenue.</summary>
     public int DiagPieceFiles { get; set; }
     public int DiagSameFiles { get; set; }
@@ -89,5 +99,5 @@ public sealed class Outfit
 
     public IEnumerable<OutfitFile> InGroup(FileGroup group) => Files.Values.Where(f => f.Group == group);
 
-    public bool HasConflicts => Pieces.Any(p => p.Conflicts.Count > 0 && p.Replacement == null);
+    public bool HasConflicts => Pieces.Any(p => p.Conflicts.Count > 0 && p.Replacement == null && !p.IgnoreConflict);
 }

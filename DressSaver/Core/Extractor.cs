@@ -95,10 +95,12 @@ public sealed class Extractor
         foreach (var (dir, files) in used)
         {
             var modFiles = scanner.Files.Where(f => string.Equals(Path.GetFileName(f.ModFolder), dir, StringComparison.OrdinalIgnoreCase)).ToList();
+            var folderName = modFiles.Count > 0 ? Path.GetFileName(modFiles[0].ModFolder) : dir;
             var source = new SourceMod
             {
-                Directory = modFiles.Count > 0 ? Path.GetFileName(modFiles[0].ModFolder) : dir,
+                Directory = folderName,
                 Name = modFiles.Count > 0 ? modFiles[0].ModName : dir,
+                Author = scanner.Authors.GetValueOrDefault(folderName, string.Empty),
                 UsedFiles = files.Count,
                 TotalFiles = modFiles.Select(f => f.GamePath).Distinct().Count(),
             };
@@ -107,6 +109,48 @@ public sealed class Extractor
         }
 
         outfit.SourceMods.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
+
+        // Crédits : quelle pièce vient de quel mod (le mod qui fournit le plus de fichiers de la pièce).
+        outfit.UnknownSourcePieces.Clear();
+        string? DirOf(string gp)
+        {
+            if (!outfit.DiskPaths.TryGetValue(gp, out var disk))
+                return null;
+            var d = Normalize(disk);
+            if (!d.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                return null;
+            var rest = d[root.Length..];
+            var slash = rest.IndexOf('/');
+            return slash > 0 ? rest[..slash] : null;
+        }
+
+        void Credit(string label, IEnumerable<string> gamePaths)
+        {
+            var best = gamePaths.Select(DirOf).Where(d => d != null)
+                                .GroupBy(d => d!, StringComparer.OrdinalIgnoreCase)
+                                .OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
+            var src = best == null ? null : outfit.SourceMods.FirstOrDefault(s => string.Equals(s.Directory, best, StringComparison.OrdinalIgnoreCase));
+            if (src != null)
+            {
+                if (!src.Pieces.Contains(label))
+                    src.Pieces.Add(label);
+            }
+            else if (!outfit.UnknownSourcePieces.Contains(label))
+            {
+                outfit.UnknownSourcePieces.Add(label);
+            }
+        }
+
+        foreach (var piece in outfit.Pieces)
+            Credit(piece.ItemName, PieceFiles(outfit, piece));
+
+        var hair = outfit.InGroup(FileGroup.Cheveux).Select(f => f.GamePath).ToList();
+        if (hair.Count > 0)
+            Credit(Loc.T("hair_label", outfit.HairStyle), hair);
+
+        var makeup = outfit.InGroup(FileGroup.Maquillage).Select(f => f.GamePath).ToList();
+        if (makeup.Count > 0)
+            Credit(Loc.T("makeup"), makeup);
     }
 
     /// <summary>Le chemin du jeu est-il remplacé pour le joueur (par un mod installé ou une synchro) ?</summary>
@@ -261,9 +305,10 @@ public sealed class Extractor
     }
 
     /// <summary>Compare la tenue aux mods déjà créés par DressSaver.</summary>
-    public void FindConflicts(Outfit outfit, ModScanner scanner)
+    public void FindConflicts(Outfit outfit, ModScanner scanner, bool compareAllMods)
     {
-        var ours = scanner.Files.Where(f => f.IsDressSaver).ToList();
+        var outfitMods = scanner.Files.Where(f => f.IsDressSaver).ToList();
+        var ours = compareAllMods ? scanner.Files : outfitMods;
         outfit.DiagPieceFiles = outfit.DiagSameFiles = outfit.DiagDifferentFiles = 0;
         foreach (var piece in outfit.Pieces)
         {
@@ -296,8 +341,10 @@ public sealed class Extractor
         }
 
         outfit.HairConflicts.Clear();
+        // Coiffures : uniquement contre les tenues DressSaver (une coiffure ne peut pas être déplacée,
+        // les comparer à tous les mods de cheveux installés n'apporterait que du bruit).
         foreach (var file in outfit.InGroup(FileGroup.Cheveux))
-            foreach (var other in ours.Where(o => o.GamePath == file.GamePath && File.Exists(o.DiskPath)))
+            foreach (var other in outfitMods.Where(o => o.GamePath == file.GamePath && File.Exists(o.DiskPath)))
                 if (ModScanner.Hash(other.DiskPath) != ModScanner.Hash(file.Data))
                     outfit.HairConflicts.Add(new Conflict(other.ModName, file.GamePath));
     }

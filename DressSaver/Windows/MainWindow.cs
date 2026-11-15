@@ -84,6 +84,7 @@ public sealed class MainWindow : Window
             outfit.Meta.Count));
 
         DrawSources(outfit);
+        DrawCredits(outfit);
         DrawDiagnostics(outfit);
 
         var blocked = outfit.HasConflicts || string.IsNullOrWhiteSpace(outfitName);
@@ -144,6 +145,13 @@ public sealed class MainWindow : Window
             plugin.SaveConfiguration();
         }
 
+        var compareAll = config.CompareAllMods;
+        if (ImGui.Checkbox(Loc.T("compare_all"), ref compareAll))
+        {
+            config.CompareAllMods = compareAll;
+            plugin.SaveConfiguration();
+        }
+
         var auto = config.AutoInstall;
         if (ImGui.Checkbox(Loc.T("auto_install"), ref auto))
         {
@@ -186,7 +194,11 @@ public sealed class MainWindow : Window
             {
                 var mods = string.Join(", ", piece.Conflicts.Select(c => c.ModName).Distinct());
                 ImGui.TextColored(Red, "   " + Loc.T("conflict_with", mods));
-                DrawReplacementPicker(o, piece);
+                var ignore = piece.IgnoreConflict;
+                if (ImGui.Checkbox(Loc.T("ignore_conflict"), ref ignore))
+                    piece.IgnoreConflict = ignore;
+                if (!piece.IgnoreConflict)
+                    DrawReplacementPicker(o, piece);
             }
             else if (piece.SharedWith.Count > 0)
             {
@@ -234,6 +246,14 @@ public sealed class MainWindow : Window
         }
 
         ImGui.TextColored(Yellow, Loc.T("freeze_short"));
+    }
+
+    private static void DrawCredits(Outfit o)
+    {
+        var credits = PmpWriter.BuildCredits(o).Trim();
+        if (credits.Length == 0 || !ImGui.CollapsingHeader(Loc.T("credits_preview") + "###credits"))
+            return;
+        ImGui.TextWrapped(credits);
     }
 
     private void DrawDiagnostics(Outfit o)
@@ -306,12 +326,13 @@ public sealed class MainWindow : Window
         {
             outfit = plugin.Extractor.Analyze(includeAccessories, includeHair, includeMakeup);
             scanner = ModScanner.Scan(plugin.Extractor.ModDirectory);
-            plugin.Extractor.FindConflicts(outfit, scanner);
+            plugin.Extractor.FindConflicts(outfit, scanner, plugin.Configuration.CompareAllMods);
             plugin.Extractor.FindSources(outfit, scanner);
             freeItems.Clear();
             filters.Clear();
             var conflicts = outfit.Pieces.Count(p => p.Conflicts.Count > 0);
-            SetStatus(Loc.T("status_analyzed", outfit.Pieces.Count, conflicts, scanner.OutfitMods.Count), false);
+            var compared = plugin.Configuration.CompareAllMods ? scanner.ModCount : scanner.OutfitMods.Count;
+            SetStatus(Loc.T("status_analyzed", outfit.Pieces.Count, conflicts, compared), false);
         }
         catch (Exception e)
         {
@@ -328,7 +349,7 @@ public sealed class MainWindow : Window
 
         try
         {
-            foreach (var piece in outfit.Pieces.Where(p => p.Conflicts.Count > 0 && p.Replacement != null).ToList())
+            foreach (var piece in outfit.Pieces.Where(p => p.Conflicts.Count > 0 && p.Replacement != null && !p.IgnoreConflict).ToList())
                 plugin.Remapper.Apply(outfit, piece, piece.Replacement!);
 
             outfit.Design.RestrictToOutfit(includeHair, includeMakeup);

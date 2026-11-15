@@ -27,4 +27,7 @@ public class Configuration : IPluginConfiguration
 
     /// <summary>Active le nouveau mod et désactive (sans les supprimer) les mods d'origine de la tenue.</summary>
     public bool DisableSourceMods { get; set; } = false;
+
+    /// <summary>Conflits : comparer avec tous les mods installés (sinon seulement les tenues DressSaver).</summary>
+    public bool CompareAllMods { get; set; } = true;
 }

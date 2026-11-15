@@ -50,6 +50,13 @@ public static class Loc
         ["output_folder"] = new[] { "Dossier de sortie", "Output folder", "Carpeta de salida", "Ausgabeordner" },
         ["mod_prefix"] = new[] { "Préfixe des mods", "Mod prefix", "Prefijo de los mods", "Mod-Präfix" },
         ["author"] = new[] { "Auteur", "Author", "Autor", "Autor" },
+        ["compare_all"] = new[]
+        {
+            "Chercher les conflits dans tous les mods installés (sinon : seulement les tenues DressSaver)",
+            "Look for conflicts in all installed mods (otherwise: DressSaver outfits only)",
+            "Buscar conflictos en todos los mods instalados (si no: solo los atuendos de DressSaver)",
+            "In allen installierten Mods nach Konflikten suchen (sonst: nur DressSaver-Outfits)",
+        },
         ["auto_install"] = new[]
         {
             "Installer automatiquement dans Penumbra",
@@ -137,6 +144,13 @@ public static class Loc
             "El peinado n.º {0} es distinto en: {1}. Un peinado no se puede mover: desmarca «Peinado» o activa solo uno de los dos mods.",
             "Frisur Nr. {0} unterscheidet sich in: {1}. Eine Frisur kann nicht verschoben werden: Deaktiviere „Frisur“ oder aktiviere nur einen der beiden Mods.",
         },
+        ["ignore_conflict"] = new[]
+        {
+            "Ignorer ce conflit (garder cet objet)",
+            "Ignore this conflict (keep this item)",
+            "Ignorar este conflicto (mantener este objeto)",
+            "Diesen Konflikt ignorieren (Item behalten)",
+        },
         ["filter"] = new[] { "Filtrer", "Filter", "Filtrar", "Filtern" },
         ["replacement_placeholder"] = new[] { "Objet libre de remplacement…", "Free replacement item…", "Objeto libre de sustitución…", "Freies Ersatz-Item…" },
         ["free_count"] = new[]
@@ -214,10 +228,10 @@ public static class Loc
         // --- Messages ---
         ["status_analyzed"] = new[]
         {
-            "{0} pièces trouvées, {1} en conflit ({2} mods de tenue comparés).",
-            "{0} pieces found, {1} in conflict ({2} outfit mods compared).",
-            "{0} piezas encontradas, {1} en conflicto ({2} mods de atuendo comparados).",
-            "{0} Teile gefunden, {1} im Konflikt ({2} Outfit-Mods verglichen).",
+            "{0} pièces trouvées, {1} en conflit ({2} mods comparés).",
+            "{0} pieces found, {1} in conflict ({2} mods compared).",
+            "{0} piezas encontradas, {1} en conflicto ({2} mods comparados).",
+            "{0} Teile gefunden, {1} im Konflikt ({2} Mods verglichen).",
         },
         ["status_analyze_failed"] = new[] { "Analyse impossible : {0}", "Analysis failed: {0}", "Análisis imposible: {0}", "Analyse fehlgeschlagen: {0}" },
         ["status_created"] = new[]
@@ -286,6 +300,17 @@ public static class Loc
             "Igual que /drss.",
             "Wie /drss.",
         },
+        ["credits_title"] = new[] { "Mods sauvegardés :", "Saved mods:", "Mods guardados:", "Gespeicherte Mods:" },
+        ["unknown_author"] = new[] { "auteur inconnu", "unknown author", "autor desconocido", "unbekannter Autor" },
+        ["unknown_source"] = new[]
+        {
+            "source inconnue (synchro ou jeu de base)",
+            "unknown source (sync or base game)",
+            "origen desconocido (sincronización o juego base)",
+            "unbekannte Quelle (Synchronisierung oder Basisspiel)",
+        },
+        ["hair_label"] = new[] { "Coiffure n°{0}", "Hairstyle #{0}", "Peinado n.º {0}", "Frisur Nr. {0}" },
+        ["credits_preview"] = new[] { "Crédits du mod", "Mod credits", "Créditos del mod", "Mod-Credits" },
         ["mod_description"] = new[]
         {
             "Tenue enregistrée avec DressSaver.",

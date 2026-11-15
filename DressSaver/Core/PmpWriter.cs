@@ -35,7 +35,7 @@ public static class PmpWriter
         using var zip = new ZipArchive(stream, ZipArchiveMode.Create);
 
         var groupNames = new List<string>();
-        var description = Loc.T("mod_description");
+        var description = Loc.T("mod_description") + BuildCredits(outfit);
 
         WriteJson(zip, "meta.json", new JsonObject
         {
@@ -90,6 +90,23 @@ public static class PmpWriter
         Group(Loc.T("makeup"), Loc.T("grp_makeup_desc"), FileGroup.Maquillage, "makeup", new List<JsonObject>());
 
         return path;
+    }
+
+    /// <summary>Crédits : « [pièce] - [mod] - [moddeur] », une ligne par pièce.</summary>
+    public static string BuildCredits(Outfit outfit)
+    {
+        var lines = new List<string>();
+        foreach (var src in outfit.SourceMods)
+        {
+            var author = string.IsNullOrWhiteSpace(src.Author) ? Loc.T("unknown_author") : src.Author;
+            foreach (var piece in src.Pieces)
+                lines.Add($"- {piece} - {src.Name} - {author}");
+        }
+
+        foreach (var piece in outfit.UnknownSourcePieces)
+            lines.Add($"- {piece} - {Loc.T("unknown_source")}");
+
+        return lines.Count == 0 ? string.Empty : "\n\n" + Loc.T("credits_title") + "\n" + string.Join("\n", lines);
     }
 
     private static JsonObject WriteFiles(ZipArchive zip, IEnumerable<OutfitFile> files, string folder)
