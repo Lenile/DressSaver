@@ -123,6 +123,27 @@ public static class Loc
             "Aplicar el atuendo a tu personaje tras la creación",
             "Outfit nach der Erstellung auf den Charakter anwenden",
         },
+        ["full_appearance"] = new[]
+        {
+            "Inclure toute l'apparence du perso dans le design",
+            "Include your character's whole appearance in the design",
+            "Incluir toda la apariencia del personaje en el diseño",
+            "Das gesamte Aussehen des Charakters ins Design aufnehmen",
+        },
+        ["full_appearance_on"] = new[]
+        {
+            "« Porter » applique la tenue et tout le perso : visage, yeux, peau, corps. À décocher si tu mets tes tenues sur plusieurs persos.",
+            "\"Wear\" applies the outfit and the whole character: face, eyes, skin, body. Untick it if you use your outfits on several characters.",
+            "«Poner» aplica el atuendo y todo el personaje: cara, ojos, piel, cuerpo. Desmárcalo si usas tus atuendos en varios personajes.",
+            "„Tragen“ wendet das Outfit und den ganzen Charakter an: Gesicht, Augen, Haut, Körper. Deaktiviere es, wenn du deine Outfits auf mehreren Charakteren nutzt.",
+        },
+        ["full_appearance_off"] = new[]
+        {
+            "« Porter » applique seulement les vêtements, et la coiffure et le maquillage s'ils sont inclus. Le reste du perso ne change pas.",
+            "\"Wear\" only applies the clothes, plus the hairstyle and makeup if included. The rest of the character stays the same.",
+            "«Poner» solo aplica la ropa, y el peinado y el maquillaje si están incluidos. El resto del personaje no cambia.",
+            "„Tragen“ wendet nur die Kleidung an, sowie Frisur und Make-up, wenn sie enthalten sind. Der Rest des Charakters bleibt gleich.",
+        },
         ["apply_design_info"] = new[]
         {
             "Une fois le mod installé et activé dans Penumbra.",
@@ -703,7 +724,14 @@ public static class Loc
             "Halskette, Ohrringe, Armbänder, Ringe",
         },
         ["grp_hair_desc"] = new[] { "Coiffure de la tenue", "The outfit's hairstyle", "Peinado del atuendo", "Frisur des Outfits" },
-        ["grp_makeup_desc"] = new[] { "Peinture faciale modée", "Modded face paint", "Pintura facial modificada", "Gemoddete Gesichtsbemalung" },
+        ["grp_makeup_desc"] = new[] { "Peinture faciale et maquillage du visage", "Face paint and face makeup", "Pintura facial y maquillaje", "Gesichtsbemalung und Make-up" },
+        ["makeup_tip"] = new[]
+        {
+            "Peinture faciale modée et maquillage dessiné sur la texture du visage (yeux, lèvres…). Le modèle du visage n'est jamais inclus.",
+            "Modded face paint and makeup painted on the face texture (eyes, lips…). The face model itself is never included.",
+            "Pintura facial modificada y maquillaje pintado en la textura de la cara (ojos, labios…). El modelo de la cara nunca se incluye.",
+            "Gemoddete Gesichtsbemalung und auf die Gesichtstextur gemaltes Make-up (Augen, Lippen…). Das Gesichtsmodell selbst wird nie übernommen.",
+        },
 
         // --- Emplacements ---
         ["slot_Head"] = new[] { "Tête", "Head", "Cabeza", "Kopf" },
