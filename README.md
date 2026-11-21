@@ -78,6 +78,12 @@ To release a new version:
 2. Set the same value for `AssemblyVersion` in `repo.json`.
 3. Push your changes. Dalamud will offer the update once the build is done (allow a few minutes for GitHub's cache).
 
+## Support
+
+Questions, ideas or a bug to report? Join the DressSaver Discord: https://discord.gg/rpZkpKHxtU
+
+You can also open it from the plugin with the **Discord** button. If something goes wrong, copy the **Diagnostics** tab and share it there.
+
 ## Credits
 
 Made by Lénile.
