@@ -18,6 +18,13 @@ public sealed class Extractor
     private static readonly Regex EquipModel = new(@"^chara/(equipment|accessory)/([ea])(\d{4})/.*?[ea]\d{4}_(met|top|glv|dwn|sho|ear|nek|wrs|rir|ril)", RegexOptions.Compiled);
     private static readonly Regex SetFolder = new(@"^chara/(equipment|accessory)/([ea])(\d{4})/", RegexOptions.Compiled);
 
+    // Maquillage dessiné directement sur la texture du visage (couleur seulement, pas le modèle du visage).
+    private static readonly Regex FaceMakeup = new(@"^chara/human/c\d{4}/obj/face/f\d{4}/texture/[^/]*_fac_(base|d)\.tex$", RegexOptions.Compiled);
+
+    /// <summary>Le fichier fait-il partie du maquillage (peinture faciale ou texture du visage) ?</summary>
+    public static bool IsMakeup(string gamePath)
+        => gamePath.StartsWith("chara/common/texture/decal_face/") || FaceMakeup.IsMatch(gamePath);
+
     // Modèles qui font partie du corps (Bibo+ / TBSE...) et non de la tenue.
     private static readonly HashSet<string> BodySets = new() { "e0000", "e0279" };
 
@@ -298,7 +305,7 @@ public sealed class Extractor
             {
                 group = FileGroup.Cheveux;
             }
-            else if (includeMakeup && gp.StartsWith("chara/common/texture/decal_face/"))
+            else if (includeMakeup && IsMakeup(gp))
             {
                 group = FileGroup.Maquillage;
             }
@@ -318,7 +325,8 @@ public sealed class Extractor
                 var candidates = new[] { tex, InsertDashes(tex) };
                 foreach (var c in candidates)
                 {
-                    if (outfit.Files.ContainsKey(c) || !diskByGamePath.TryGetValue(c, out var disk))
+                    // Les textures de peau du corps ou du visage (chara/human/...) appartiennent au mod de corps, pas à la tenue.
+                    if (c.StartsWith("chara/human/") || outfit.Files.ContainsKey(c) || !diskByGamePath.TryGetValue(c, out var disk))
                         continue;
                     outfit.Files[c] = new OutfitFile { GamePath = c, Data = File.ReadAllBytes(disk), Group = mtrl.Group };
                     outfit.DiskPaths[c] = disk;
@@ -388,7 +396,7 @@ public sealed class Extractor
                 continue;
             var group = f.GamePath.StartsWith("chara/accessory/") ? FileGroup.Accessoires
                       : f.GamePath.Contains("/obj/hair/") ? FileGroup.Cheveux
-                      : f.GamePath.StartsWith("chara/common/texture/decal_face/") ? FileGroup.Maquillage
+                      : IsMakeup(f.GamePath) ? FileGroup.Maquillage
                       : FileGroup.Tenue;
             outfit.Files[f.GamePath] = new OutfitFile { GamePath = f.GamePath, Data = File.ReadAllBytes(f.DiskPath), Group = group };
             outfit.DiskPaths[f.GamePath] = f.DiskPath;

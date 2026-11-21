@@ -10,8 +10,10 @@ Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type
 
 ## Features
 
-- **One mod per outfit**: clothes and their metadata, plus optional **Accessories**, **Hairstyle** and **Makeup** groups you can toggle in Penumbra.
-- **Glamourer design** for each outfit (gear, dyes, hairstyle, makeup only), saved directly in Glamourer's design list, and optionally applied to your character right after creation. It's also copied to your clipboard and saved next to the mod.
+- **One mod per outfit**: clothes and their metadata, plus optional **Accessories**, **Hairstyle** and **Makeup** groups you can toggle in Penumbra. Makeup includes modded face paint and makeup painted on the face texture (the face model itself is never included).
+- **Glamourer design** for each outfit, saved directly in Glamourer's design list, and optionally applied to your character right after creation. It's also copied to your clipboard and saved next to the mod.
+  - By default, the design includes your character's whole appearance (face, eyes, skin, body), so **Wear** brings back the complete look.
+  - If you use your outfits on several characters, untick **Include your character's whole appearance in the design** in the settings: the design then only applies the gear, dyes, hairstyle and makeup.
 - **Automatic install** in Penumbra.
 - **Conflict detection**: compares each piece with your installed mods.
   - Identical files are marked as **Shared**: they are harmless.
