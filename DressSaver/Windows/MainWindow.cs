@@ -223,6 +223,7 @@ public sealed partial class MainWindow : Window
         ImGui.Checkbox(Loc.T("hair"), ref includeHair);
         ImGui.SameLine();
         ImGui.Checkbox(Loc.T("makeup"), ref includeMakeup);
+        Tooltip(Loc.T("makeup_tip"));
 
         ImGui.Spacing();
         if (!DependenciesOk)
@@ -846,6 +847,22 @@ public sealed partial class MainWindow : Window
         ImGui.Indent();
         Wrapped(Grey, Loc.T("apply_design_info"));
         ImGui.Unindent();
+
+        if (!config.SaveDesignToGlamourer)
+            ImGui.BeginDisabled();
+        var full = config.FullAppearanceInDesign;
+        if (ImGui.Checkbox(Loc.T("full_appearance"), ref full))
+        {
+            config.FullAppearanceInDesign = full;
+            plugin.SaveConfiguration();
+        }
+
+        if (!config.SaveDesignToGlamourer)
+            ImGui.EndDisabled();
+
+        ImGui.Indent();
+        Wrapped(Grey, Loc.T(config.FullAppearanceInDesign ? "full_appearance_on" : "full_appearance_off"));
+        ImGui.Unindent();
     }
 
     // ------------------------------------------------------------------ Onglet Diagnostic
@@ -956,7 +973,7 @@ public sealed partial class MainWindow : Window
             foreach (var piece in outfit.Pieces.Where(p => p.Conflicts.Count > 0 && p.Replacement != null && !p.IgnoreConflict).ToList())
                 plugin.Remapper.Apply(outfit, piece, piece.Replacement!);
 
-            outfit.Design.RestrictToOutfit(includeHair, includeMakeup);
+            outfit.Design.RestrictToOutfit(includeHair, includeMakeup, config.FullAppearanceInDesign);
             var pmp = PmpWriter.Write(outfit, modName, config.Author, config.OutputFolder);
 
             // Design : toujours en fichier .txt et dans le presse-papier, et dans Glamourer si demandé.

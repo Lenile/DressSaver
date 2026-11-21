@@ -41,6 +41,9 @@ public class Configuration : IPluginConfiguration
     /// <summary>Applique le design sur le personnage une fois le mod installé et activé.</summary>
     public bool ApplyDesignAfterCreate { get; set; } = true;
 
+    /// <summary>Le design Glamourer applique toute l'apparence du perso (visage, yeux, peau…), pas seulement la tenue.</summary>
+    public bool FullAppearanceInDesign { get; set; } = true;
+
     /// <summary>Design Glamourer associé à chaque tenue : dossier du mod Penumbra → identifiant du design.</summary>
     public Dictionary<string, Guid> OutfitDesigns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
