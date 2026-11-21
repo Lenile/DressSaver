@@ -733,6 +733,23 @@ public static class Loc
             "Gemoddete Gesichtsbemalung und auf die Gesichtstextur gemaltes Make-up (Augen, Lippen…). Das Gesichtsmodell selbst wird nie übernommen.",
         },
 
+        // --- Discord ---
+        ["discord"] = new[] { "Discord", "Discord", "Discord", "Discord" },
+        ["discord_tip"] = new[]
+        {
+            "Rejoindre le Discord de DressSaver : aide, idées et retours.",
+            "Join the DressSaver Discord: help, ideas and feedback.",
+            "Únete al Discord de DressSaver: ayuda, ideas y comentarios.",
+            "Tritt dem DressSaver-Discord bei: Hilfe, Ideen und Feedback.",
+        },
+        ["discord_help"] = new[]
+        {
+            "Un souci ? Copie le diagnostic et viens en parler sur le Discord.",
+            "Having trouble? Copy the diagnostics and come talk about it on the Discord.",
+            "¿Algún problema? Copia el diagnóstico y ven a contarlo en el Discord.",
+            "Ein Problem? Kopiere die Diagnose und melde dich auf dem Discord.",
+        },
+
         // --- Emplacements ---
         ["slot_Head"] = new[] { "Tête", "Head", "Cabeza", "Kopf" },
         ["slot_Body"] = new[] { "Torse", "Body", "Torso", "Körper" },

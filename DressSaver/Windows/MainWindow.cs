@@ -6,6 +6,7 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Utility;
 using DressSaver.Core;
 
 namespace DressSaver.Windows;
@@ -23,6 +24,12 @@ public sealed partial class MainWindow : Window
     private static readonly Vector4 CreateButton = new(0.22f, 0.55f, 0.32f, 1f);
     private static readonly Vector4 CreateButtonHover = new(0.28f, 0.66f, 0.39f, 1f);
     private static readonly Vector4 CreateButtonActive = new(0.18f, 0.46f, 0.27f, 1f);
+
+    // Serveur Discord de DressSaver (aide, idées, retours)
+    private const string DiscordUrl = "https://discord.gg/rpZkpKHxtU";
+    private static readonly Vector4 DiscordColor = new(0.35f, 0.40f, 0.95f, 1f);
+    private static readonly Vector4 DiscordHover = new(0.43f, 0.48f, 1f, 1f);
+    private static readonly Vector4 DiscordActive = new(0.28f, 0.32f, 0.82f, 1f);
 
     private readonly Plugin plugin;
 
@@ -102,6 +109,12 @@ public sealed partial class MainWindow : Window
         ImGui.TextColored(Accent, "DressSaver");
         ImGui.SameLine();
         ImGui.TextColored(Grey, Loc.T("subtitle"));
+
+        // Bouton Discord aligné à droite du titre.
+        var discordWidth = ImGui.CalcTextSize(Loc.T("discord")).X + ImGui.GetStyle().FramePadding.X * 2;
+        ImGui.SameLine();
+        ImGui.SetCursorPosX(Math.Max(ImGui.GetCursorPosX(), ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X - discordWidth));
+        DiscordButton("##discord_header");
         ImGui.Spacing();
 
         DrawDependencies();
@@ -157,6 +170,18 @@ public sealed partial class MainWindow : Window
     {
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip(text);
+    }
+
+    /// <summary>Bouton aux couleurs de Discord qui ouvre l'invitation du serveur dans le navigateur.</summary>
+    private static void DiscordButton(string id)
+    {
+        ImGui.PushStyleColor(ImGuiCol.Button, DiscordColor);
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, DiscordHover);
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, DiscordActive);
+        if (ImGui.Button(Loc.T("discord") + id))
+            Util.OpenLink(DiscordUrl);
+        ImGui.PopStyleColor(3);
+        Tooltip(Loc.T("discord_tip"));
     }
 
     private static void Wrapped(Vector4 color, string text)
@@ -885,6 +910,7 @@ public sealed partial class MainWindow : Window
         if (scanner == null || outfit == null)
         {
             Wrapped(Grey, Loc.T("hint_equip"));
+            DrawDiscordHelp();
             return;
         }
 
@@ -923,6 +949,18 @@ public sealed partial class MainWindow : Window
                        + $"Sample paths: {string.Join(", ", o.Files.Keys.Where(k => k.EndsWith(".mdl")).Take(5))}";
             ImGui.SetClipboardText(text);
         }
+
+        DrawDiscordHelp();
+    }
+
+    /// <summary>Aide en bas de l'onglet Diagnostic : renvoie vers le Discord.</summary>
+    private static void DrawDiscordHelp()
+    {
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        Wrapped(Grey, Loc.T("discord_help"));
+        DiscordButton("##discord_diag");
     }
 
     // ------------------------------------------------------------------ Actions
