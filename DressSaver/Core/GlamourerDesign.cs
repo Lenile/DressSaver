@@ -79,10 +79,12 @@ public sealed class GlamourerDesign
     }
 
     /// <summary>
-    /// Ne garde actifs que l'équipement (hors armes), et selon les options la coiffure et le maquillage.
-    /// Le reste du personnage n'est pas touché quand on applique le design.
+    /// Règle les cases « appliquer » du design.
+    /// - Équipement (hors armes) : toujours coché, teintures comprises.
+    /// - Avec <paramref name="fullAppearance"/> : toute l'apparence du perso est cochée (visage, yeux, peau, corps…).
+    /// - Sinon : seulement la coiffure et le maquillage, selon les options ; le reste du perso n'est pas touché.
     /// </summary>
-    public void RestrictToOutfit(bool hair, bool makeup)
+    public void RestrictToOutfit(bool hair, bool makeup, bool fullAppearance)
     {
         if (Root["Customize"] is JsonObject customize)
         {
@@ -90,7 +92,9 @@ public sealed class GlamourerDesign
             {
                 if (value is not JsonObject c || !c.ContainsKey("Apply"))
                     continue;
-                var keep = (hair && Array.IndexOf(HairKeys, key) >= 0) || (makeup && Array.IndexOf(MakeupKeys, key) >= 0);
+                var keep = fullAppearance
+                           || (hair && Array.IndexOf(HairKeys, key) >= 0)
+                           || (makeup && Array.IndexOf(MakeupKeys, key) >= 0);
                 c["Apply"] = keep;
             }
         }
@@ -98,18 +102,28 @@ public sealed class GlamourerDesign
         if (Root["Parameters"] is JsonObject parameters)
             foreach (var (_, value) in parameters)
                 if (value is JsonObject p && p.ContainsKey("Apply"))
-                    p["Apply"] = false;
+                    p["Apply"] = fullAppearance;
 
         if (Root["Equipment"] is JsonObject equipment)
         {
             foreach (var (key, value) in equipment)
             {
-                if (value is not JsonObject e || !e.ContainsKey("Apply"))
+                if (value is not JsonObject e)
                     continue;
-                var keep = Slots.FromName(key) != null;
-                e["Apply"] = keep;
+
+                if (Slots.FromName(key) != null)
+                {
+                    // Pièce de la tenue : toujours appliquée, même si Glamourer n'a pas écrit la case.
+                    e["Apply"] = true;
+                    e["ApplyStain"] = true;
+                    continue;
+                }
+
+                // Armes : jamais. Chapeau / visière : seulement avec toute l'apparence.
+                if (e.ContainsKey("Apply"))
+                    e["Apply"] = fullAppearance && (key == "Hat" || key == "Visor");
                 if (e.ContainsKey("ApplyStain"))
-                    e["ApplyStain"] = keep;
+                    e["ApplyStain"] = false;
             }
         }
     }
