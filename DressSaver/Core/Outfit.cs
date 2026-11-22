@@ -73,6 +73,9 @@ public sealed class OutfitPiece
     public string Folder => Slots.Folder(Slot.Kind, Set);
 }
 
+/// <summary>Objet du jeu de base porté sur un emplacement, sans mod : affiché pour information, rien à copier.</summary>
+public sealed record VanillaPiece(SlotInfo Slot, string ItemName);
+
 /// <summary>Résultat de l'analyse de la tenue portée.</summary>
 public sealed class Outfit
 {
@@ -81,6 +84,9 @@ public sealed class Outfit
     /// <summary>Emplacement sur le disque de chaque fichier lu (chemin de jeu → fichier du mod).</summary>
     public Dictionary<string, string> DiskPaths { get; } = new();
     public List<OutfitPiece> Pieces { get; } = new();
+
+    /// <summary>Objets du jeu de base portés (sans mod). Ils sont dans le design Glamourer, pas dans le mod.</summary>
+    public List<VanillaPiece> VanillaPieces { get; } = new();
     public List<JsonObject> Meta { get; } = new();
     public required GlamourerDesign Design { get; init; }
 

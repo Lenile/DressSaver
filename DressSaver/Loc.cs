@@ -72,6 +72,14 @@ public static class Loc
             "Ningún otro mod modifica este objeto.",
             "Kein anderer Mod verändert dieses Item.",
         },
+        ["state_vanilla"] = new[] { "Jeu de base", "Base game", "Juego base", "Basisspiel" },
+        ["tip_vanilla"] = new[]
+        {
+            "Objet du jeu sans mod : il n'y a rien à copier dans le mod. Il est quand même dans le design Glamourer, « Porter » le remettra.",
+            "Unmodded game item: there's nothing to copy into the mod. It's still in the Glamourer design, so \"Wear\" puts it back on.",
+            "Objeto del juego sin mod: no hay nada que copiar en el mod. Sigue estando en el diseño de Glamourer, así que «Poner» lo vuelve a equipar.",
+            "Ungemoddetes Spiel-Item: Es gibt nichts in den Mod zu kopieren. Es ist trotzdem im Glamourer-Design, „Tragen“ zieht es wieder an.",
+        },
         ["moved_to"] = new[] { "Sera déplacé sur : {0}", "Will be moved onto: {0}", "Se moverá a: {0}", "Wird verschoben auf: {0}" },
         ["model_tip"] = new[]
         {

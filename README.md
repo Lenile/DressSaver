@@ -17,6 +17,7 @@ Tired of a Penumbra mod list full of loose clothing mods? Put an outfit on, type
 - **Automatic install** in Penumbra.
 - **Conflict detection**: compares each piece with your installed mods.
   - Identical files are marked as **Shared**: they are harmless.
+  - Unmodded game items are listed as **Base game**: they are not copied into the mod, but they stay in the Glamourer design.
   - Different files are marked as **Conflict**, with a searchable list of **free items** (not touched by any of your mods or syncs) to move the piece onto. You can also choose to ignore the conflict.
 - **Credits**: the description of every created mod lists each piece with its original mod and modder (`Piece - Mod - Author`).
 - **Disable original mods** (optional): once the new mod is installed and enabled, the mods the outfit came from are disabled. **They are never deleted**, so you can turn them back on at any time.

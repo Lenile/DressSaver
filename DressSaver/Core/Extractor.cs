@@ -289,6 +289,18 @@ public sealed class Extractor
             outfit.Pieces.Add(piece);
         }
 
+        // 3b. Objets du jeu de base (aucun mod) : seulement affichés, ils restent dans le design Glamourer.
+        foreach (var slot in Slots.All)
+        {
+            if (slot.Kind == PieceKind.Accessory && !includeAccessories)
+                continue;
+            if (outfit.Pieces.Any(p => p.Slot.Name == slot.Name))
+                continue;
+            var vanilla = items.Get(outfit.Design.ItemOf(slot.Name));
+            if (vanilla != null)
+                outfit.VanillaPieces.Add(new VanillaPiece(slot, vanilla.Name));
+        }
+
         // 4. Fichiers par groupe
         var activeTags = outfit.Pieces.Select(p => p.Tag).ToHashSet();
         foreach (var (gp, disk) in diskByGamePath)
