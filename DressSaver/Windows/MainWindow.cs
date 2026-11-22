@@ -305,7 +305,8 @@ public sealed partial class MainWindow : Window
         if (o.Pieces.Count == 0)
         {
             Wrapped(Grey, Loc.T("no_pieces"));
-            return;
+            if (o.VanillaPieces.Count == 0)
+                return;
         }
 
         const ImGuiTableFlags flags = ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.PadOuterX;
@@ -317,31 +318,61 @@ public sealed partial class MainWindow : Window
         ImGui.TableSetupColumn(Loc.T("col_status"), ImGuiTableColumnFlags.WidthStretch, 1.0f);
         ImGui.TableHeadersRow();
 
-        foreach (var piece in o.Pieces)
+        // Les pièces sont affichées dans l'ordre des emplacements : pièces modées et objets du jeu de base mélangés.
+        foreach (var slot in Slots.All)
         {
-            ImGui.TableNextRow();
-
-            ImGui.TableNextColumn();
-            ImGui.TextColored(Grey, Loc.Slot(piece.Slot.Name));
-
-            ImGui.TableNextColumn();
-            if (piece.OldModel)
-            {
-                Icon(FontAwesomeIcon.History, Yellow);
-                Tooltip(Loc.T("old_model_tip"));
-                ImGui.SameLine();
-            }
-
-            ImGui.TextUnformatted(piece.ItemName);
-            Tooltip(Loc.T("model_tip", piece.Tag));
-            if (piece.Replacement != null && !piece.IgnoreConflict && piece.Conflicts.Count > 0)
-                ImGui.TextColored(Yellow, "→ " + piece.Replacement.Name);
-
-            ImGui.TableNextColumn();
-            DrawPieceState(piece);
+            foreach (var piece in o.Pieces.Where(p => p.Slot.Name == slot.Name))
+                DrawPieceRow(piece);
+            foreach (var vanilla in o.VanillaPieces.Where(v => v.Slot.Name == slot.Name))
+                DrawVanillaRow(vanilla);
         }
 
         ImGui.EndTable();
+    }
+
+    /// <summary>Ligne grisée pour un objet du jeu de base : rien à copier, mais il est dans le design.</summary>
+    private static void DrawVanillaRow(VanillaPiece vanilla)
+    {
+        ImGui.TableNextRow();
+
+        ImGui.TableNextColumn();
+        ImGui.TextColored(Grey, Loc.Slot(vanilla.Slot.Name));
+
+        ImGui.TableNextColumn();
+        ImGui.TextColored(Grey, vanilla.ItemName);
+        Tooltip(Loc.T("tip_vanilla"));
+
+        ImGui.TableNextColumn();
+        ImGui.BeginGroup();
+        Icon(FontAwesomeIcon.Gamepad, Grey);
+        ImGui.SameLine();
+        ImGui.TextColored(Grey, Loc.T("state_vanilla"));
+        ImGui.EndGroup();
+        Tooltip(Loc.T("tip_vanilla"));
+    }
+
+    private static void DrawPieceRow(OutfitPiece piece)
+    {
+        ImGui.TableNextRow();
+
+        ImGui.TableNextColumn();
+        ImGui.TextColored(Grey, Loc.Slot(piece.Slot.Name));
+
+        ImGui.TableNextColumn();
+        if (piece.OldModel)
+        {
+            Icon(FontAwesomeIcon.History, Yellow);
+            Tooltip(Loc.T("old_model_tip"));
+            ImGui.SameLine();
+        }
+
+        ImGui.TextUnformatted(piece.ItemName);
+        Tooltip(Loc.T("model_tip", piece.Tag));
+        if (piece.Replacement != null && !piece.IgnoreConflict && piece.Conflicts.Count > 0)
+            ImGui.TextColored(Yellow, "→ " + piece.Replacement.Name);
+
+        ImGui.TableNextColumn();
+        DrawPieceState(piece);
     }
 
     private static void DrawPieceState(OutfitPiece piece)
